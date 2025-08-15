@@ -1,21 +1,22 @@
-7 — Engineering checklist / acceptance matrix
-Infrastructure
-	•	Unity project created with Editor baseline 60001.4f.
-	•	Packages locked: Input System 1.14.2, AI Navigation 2.0.8, Netcode 2.4.4, Unity Physics 1.3.14. (documented manifest.json).
-Movement & Controls
-	•	Input System action maps defined.
-	•	Ground check deterministic and reconciled server-side.
-	•	Double jump flag consistently resets on land.
-AI
-	•	Enemies idle until damaged.
-	•	Enemies pursue attacker until distanceFromSpawn > R or timeSinceLastSuccessfulHit >= T.
-	•	Attack hit windows align with animation events.
-	•	NavMesh integration for pathing and jumping.
-Network
-	•	Server authoritative damage resolution.
-	•	Network reconciliation tested under 100ms simulated latency.
-	•	Minimal NetworkVariable usage (HP, position backup).
-Tests
-	•	Unit-tests for FSM transition matrix.
-	•	Integration tests for BT decisions (mock).
-	•	Netcode automated test for spawn/sync.
+# Engineering Acceptance Matrix (v1.0, 2025-08-15)
+
+## Infrastructure
+- Unity 6000.1.15f1; packages pinned (Input 1.14.2, AI Nav 2.0.8, NGO 2.4.4).
+
+## Movement & Controls
+- Input maps defined; ground check reconciled server‑side; **double‑jump** flag resets on land.
+
+## AI
+- Idle‑until‑damaged; pursue‑until (leash OR timeout); attack hit windows align with animation; OffMeshLink traversal verified.
+
+## Network
+- Server‑auth damage; reconciliation tested at 50–150 ms RTT, 1–3% loss; minimal NetworkVariables (HP, coins).
+
+## Performance
+- Meets mobile budgets (draw calls, tris, VFX, GC); no thermal throttle in 10‑minute soak.
+
+## Tests
+- FSM transition unit tests; BT decision integration tests; NGO spawn/sync tests; packet loss & jitter harness.
+
+## Pass/Fail
+- PASS when all above are true in 3 consecutive 10‑minute internal playtests.

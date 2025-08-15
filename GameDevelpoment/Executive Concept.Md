@@ -1,12 +1,38 @@
-Executive Concept (MULTIPLE PHD Level)
-1 — Executive Concept (PhD-level)
-Title: Meme Online Battle Arena (MOBA) — dark/ironic comedic 3D platformer MOBA with jumping/double-jumping.
-High-level proposition: A fast‑tempo, skill‑based asymmetric arena where three‑minute and five‑minute rounds of 3v3 arena combat emphasize mobility (jump/double jump), short‑duration objective control, econ pickups (crypto coin tokens), and humorous, memetic characters (Elom Nusk, Doge Dog, Tronald Dump). The prototype priority is the 5‑minute 3v3 mode with deterministic mechanics for rapid iteration and AI‑driven bots.
-Core pillars
-	1	Mechanical clarity: crisp movement (ground, jump, double jump), hit registration, short cooldowns.
-	2	Competitive parity: symmetric maps + asymmetric kits via balanced stats.
-	3	Comedy & identity: memetic design and audio/visual gags that don’t compromise telegraphing.
-	4	Network determinism & rollback-friendly state: authoritative server using Netcode for GameObjects as primary reference.
-Constraints / Non‑functional requirements
-	•	Use Unity Editor 60001.4f (project baseline).
-	•	Use: Input System 1.14.2; AI Navigation 2.0.8; Netcode for GameObjects 2.4.4; Unity Physics 1.3.14. Design must conform to these packages’ APIs and limitations. Unity User Manual+1Unity DocumentationUnity Discussions
+# Executive Concept — Master-Reviewed (v1.0, 2025-08-15)
+
+**Project:** Meme Online Battle Arena (MOBA)  
+**Editor:** Unity 6000.1.15f1  
+**Template/Render:** 3D Mobile Template 6.1.2 (URP Mobile)  
+**Networking:** Netcode for GameObjects (NGO) 2.4.4 (server authoritative)  
+**Physics:** GameObject/PhysX (no DOTS/Unity Physics for prototype)
+
+## High-Concept
+A dark/ironic comedic **3D platformer MOBA** with short, high‑tempo rounds (prototype focus: **5‑minute 3v3**) emphasizing tight platforming (jump, **double‑jump**), objective play via **coin pickups and deposit scoring**, and satirical meme characters (Elom Nusk, Doge Dog, Tronald Dump).
+
+## Core Pillars
+1. **Mechanical clarity** — crisp ground/air control, consistent hit windows, short readable cooldowns.
+2. **Competitive parity** — symmetric map, asymmetric kits via data‑driven stats.
+3. **Comedy without noise** — humor never compromises readability/telegraphing.
+4. **Server authoritative + reconciliation** — server is the source of truth; client prediction only for local player.
+
+## Prototype Scope
+- **Mode:** 3v3, **5:00** timer, sudden‑death overtime if tied (**first deposit** wins).
+- **Loop:** spawn → fight → coins drop/spawn → collect → **deposit** → repeat → results.
+- **AI:** Stationary Sentinel: idle‑until‑damaged, pursue/attack with leash and give‑up timeout.
+
+## Non‑Functional Baseline
+- **Editor:** 6000.1.15f1; **URP Mobile** quality tiers.
+- **Packages:** Input System 1.14.2; AI Navigation 2.0.8; NGO 2.4.4.
+- **Target devices:** mid‑tier Android/iOS; 60 FPS target (see budgets).
+
+## Performance Budgets (Mobile)
+- CPU: ≤ 8 ms/frame client; AI tick 20–30 Hz; physics 60 Hz.
+- GPU: ≤ 70 draw calls; ≤ 400k tris; ≤ 8 active particle systems.
+- Memory/GC: < 1 KB/frame GC; pooled VFX/audio; UI atlases.
+- Network: 20–30 Hz transform interpolation; < 25 kB/s per client average.
+- Thermals: no throttling during a 10‑minute 3v3 session.
+
+## Success Criteria
+- Matches complete without >5% disconnects; server remains authoritative.
+- Platforming/double‑jump consistent under latency; deposit loop error‑free.
+- AI behaves per spec ≥95% cases; animation events align with hit windows.

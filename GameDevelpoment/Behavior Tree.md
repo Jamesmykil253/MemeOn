@@ -1,11 +1,13 @@
+# Behavior Tree — Stationary Sentinel (v1.0, 2025-08-15)
+
 Root Selector
 ├─ Idle branch:
-│   Condition: IsDamaged? 
-│     Yes -> SetTarget(lastAttacker), Switch FSM to Aggro
-│     No  -> Do Nothing (remain idle)
-└─ Aggro branch (Sequence):
-    Condition: Within Aggro Radius?
-      Yes -> Check: Target in Attack Range?
-             ├─ Yes -> Attack Target
-             └─ No  -> MoveTo(TargetPosition)
-      No  -> MoveTo(SpawnPosition), Switch FSM to Idle
+│   If(IsDamaged) → SetTarget(lastAttacker) → FSM.Switch(Alerted)
+│   else → IdleAction
+└─ Engage branch (Sequence):
+    Check Within Aggro Radius?
+      yes → InAttackRange?
+              yes → FSM.Switch(Attack type)
+              no  → MoveTo(TargetPosition)
+      no  → MoveTo(SpawnPosition) → FSM.Switch(Idle)
+**Threat Modulation:** If target threat HIGH, run EvadeSequence before re‑engage.

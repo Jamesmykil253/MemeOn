@@ -1,28 +1,52 @@
-2 — Game Design Document (GDD) — Core Gameplay (focused on 5‑minute 3v3 prototype)
-2.1 Game modes & match timing
-	•	Prototype focus: 5‑minute 3v3 (objective: collect crypto coins and deposit at zone / or hold more coins than opponents on end-of-match tally).
-	•	Additional planned modes: 1m 1v1, 3m 3v3 (short), 10m 5v5 (large). But the first dev iteration concentrates on 5m 3v3.
-2.2 Map design (prototype)
-	•	Small arena with verticality (platforms, ledges), 3 coin spawn clusters, one central contested zone.
-	•	Telemetry points: spawn positions, coin spawn nodes (deterministic spawn timers), safe deposit zone.
-2.3 Characters & kits (prototype: 3 chassis)
-	•	Elom Nusk: medium mobility, ranged basic attack, dash, energy shield.
-	•	Doge Dog: high mobility (double jump buff), melee burst, bark‑stun.
-	•	Tronald Dump: tanky, short knockback melee, area taunt.
-Each kit defined by data tables: movement (maxSpeed, accel, jumpVelocity, doubleJumpAvailable), combat (range, DPS, cooldowns), health, move/attack animations placeholders.
-2.4 Economy
-	•	Pickup: crypto coin item (value = 1). Dropped on ground after certain events, or spawn nodes.
-	•	Deposit: deposit zone generates team score. Points persist until round end. Coins also drop from defeated players.
-2.5 Combat & hit registration
-	•	Physics‑based hit detection via Unity Physics for projectiles and melee (use query APIs; ensure consistent mode between server & client). For authoritative server model: server validates hits; client predicts and reconciles.
-2.6 Player movement mechanics
-	•	Ground move: standard acceleration/damping.
-	•	Jump: single jump on ground; consumes jump resource.
-	•	Double jump: available if not grounded and doubleJump not used. Reset on land or after specific conditions (e.g., wall contact).
-	•	Air control: limited; tuned constants in data table.
-2.7 Match flow
-	•	Spawn → 5:00 timer → coin spawns + pickups → combat & movement → deposits + scoring → tiebreaker rule (highest score wins; else sudden death).
-2.8 UX and animation placeholders
-	•	Each ability and state has an animation marker (string ID). For prototype, use simple animation placeholders and event hooks:
-	◦	"Anim_Move" "Anim_Jump" "Anim_DoubleJump" "Anim_Attack_Light" "Anim_Attack_Heavy" "Anim_Hurt" "Anim_Death" "Anim_Respawn".
-	•	Animation events used to trigger gameplay events (e.g., damage windows).
+# Game Design Document (GDD) — Master-Reviewed (v1.0, 2025-08-15)
+
+## 1. Overview
+Hybrid 3D platformer MOBA with satirical characters and short‑form matches. Prototype delivers **5‑minute 3v3** on a single symmetric arena.
+
+## 2. Core Loop
+1. Spawn into base.
+2. Navigate (run, jump, **double‑jump**, dash).
+3. Fight (melee/ranged), coins drop from KOs and spawn nodes.
+4. **Collect** coins and **deposit** at team zone for score.
+5. Repeat until timer ends; if tied → **sudden‑death overtime (first deposit wins)**.
+6. Results screen.
+
+## 3. Mode Rules (Prototype)
+- Team size: **3v3**.
+- Timer: **5:00**; Respawn: 5s.
+- Coin value: 1 point per deposited coin.
+- Anti‑flood: **0.5s per coin** deposit throttle (server enforced).
+- Overtime: infinite instant‑respawn until first **deposit**.
+
+## 4. Map (Meme Coliseum — working title)
+- ~60×60m, 3 vertical layers, mirrored left/right.
+- **3 coin spawn nodes** with deterministic timers.
+- **2 deposit zones** (one per team), symmetric.
+- Jump gaps require single or double‑jump; **OffMeshLinks** for AI traversal.
+
+## 5. Characters (Prototype)
+**Elom Nusk** — balanced ranged; Health 100; Speed 6 m/s; JumpHeight 2.5 m; DoubleJump ✓; Abilities: Dash, Energy Shield.  
+**Doge Dog** — agile melee; Health 80; Speed 7.5 m/s; JumpHeight 2.7 m; DoubleJump ✓ (short cooldown); Abilities: Bark Stun (AoE), Sprint.  
+**Tronald Dump** — tank/bruiser; Health 140; Speed 5 m/s; JumpHeight 2.2 m; DoubleJump ✗; Abilities: Knockback, Area Taunt.
+
+## 6. Player Mechanics
+- Ground accel 35 m/s², friction/damping tuned; air control at ~60% of ground accel.
+- **Jump/double‑jump**: double‑jump enabled when airborne and flag unused; reset on ground.
+- Combat: melee via **OverlapSphere** on animation hit window; ranged via raycast/projectile; server resolves hits.
+
+## 7. Economy
+- Server controls coin spawns (nodes + on‑death drops).
+- Inventory: carried coin count (NetworkVariable<int>).
+- **Deposit** increments team score; removes coins from carrier; **0.5s/coin** throttle.
+
+## 8. UI/HUD (Prototype)
+- Health bar (self/target), carried coins, team scores, timer, ability cooldowns.
+
+## 9. Non‑Functional
+- **Authoritative server**; clients predict only local player; reconciliation corrects drift.
+- Target 60 FPS on mid‑tier mobile under stated budgets.
+
+## 10. Acceptance
+- Players can complete the loop without critical bugs.
+- Overtime rule triggers correctly (first deposit).  
+- AI adheres to Stationary Sentinel spec (see AI Logic).
