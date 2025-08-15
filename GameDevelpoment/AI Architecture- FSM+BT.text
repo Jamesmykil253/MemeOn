@@ -1,0 +1,73 @@
+3 — AI Architecture: FSM + Behavior Tree (audit + full design)
+This section provides: (A) an FSM for locomotion & combat states; (B) a modular Behavior Tree (BT) for decision making; (C) blackboard keys & data schema; (D) networking and physics integration notes.
+Design philosophy: use hierarchical hybridization — an FSM for low‑level action sequencing (atomic, deterministic movement/attack states) and a Behavior Tree at a higher level for goal/intent arbitration. This minimizes state explosion, keeps deterministic low‑level loops, and allows explainable high‑level behavior.
+3.1 High‑level FSM (per agent) — low-latency action layer
+States (atomic, mutually exclusive)
+	1	Idle — rooted at spawn, non‑aggressive.
+	2	Alerted — target detected (took damage or attacked by player); prepares to engage.
+	3	Pursue — path following to target (NavMeshAgent/AI Nav data).
+	4	MeleeAttack / RangedAttack — attack execution window (driven by animations).
+	5	Evade — retreat/backoff (used when target outside engagement params or to return to spawn).
+	6	ReturnToSpawn — go back to origin if conditions met (distance/time).
+	7	Stunned — interrupt state.
+	8	Dead / Respawn — lifecycle.
+Transitions (concise algorithmic rules)
+	•	Idle → Alerted WHEN (tookDamage == true OR attackedByPlayer == true) ; set target = attacker.
+	•	Alerted → Pursue IMMEDIATELY after small reaction delay (reactionTime = sampleGaussian(mean, σ)).
+	•	Pursue → MeleeAttack WHEN (target.distance <= meleeRange && attackReady == true).
+	•	Pursue → RangedAttack WHEN (target.inRangedWindow == true).
+	•	MeleeAttack → Pursue WHEN (attackFinished && targetAlive).
+	•	ANY_STATE → Stunned WHEN (stunEvent) ; on Stunned exit → Pursue or Evade depending on conditions.
+	•	Pursue → ReturnToSpawn WHEN (timeSinceLastHit >= giveUpTimeout OR distanceFromSpawn > maxPursueRadius).
+	◦	giveUpTimeout and maxPursueRadius are tunable per enemy archetype.
+	•	ReturnToSpawn → Idle WHEN (position ≈ spawnPosition).
+Notes: giveUpTimeout is essential: if the enemy fails to land hits or loses line-of-sight for T_timeout seconds, they should break pursuit and return. This matches your rule: enemies are stationary until provoked and pursue until far from spawn or fails to hit within time window.
+3.2 Behavior Tree (High-level tactical decision layer)
+Top Level BT Root: Selector
+	•	Node 1: CheckIsDead -> HandleRespawn
+	•	Node 2: CheckTargetValid -> EngageBehavior
+	•	Node 3: PatrolOrIdle -> (but per your spec enemies do not patrol; so this is Idle.)
+EngageBehavior (Sequence)
+	1	SetTarget (blackboard write)
+	2	EvaluateThreat (Conditional): if target is high danger → EvadeSequence else → AttackSequence.
+	3	PathToTarget (Action) — uses NavMesh build/agent.
+	4	ApproachAndAttack (Dynamic Subtree): chooses between MeleeAttackAction and RangedAttackAction depending on range & LOS.
+AttackSequence (Parallel with priority)
+	•	IsInAttackWindow? → PerformAttackAnimation (action) → ApplyDamage (server authoritative).
+	•	MonitorHitSuccess — if failedHits > threshold → signal GiveUp (BT sets shouldReturn = true).
+EvadeSequence
+	•	ComputeEvadePoint (NavMesh sample)
+	•	MoveToEvadePoint
+	•	Wait (small window)
+	•	Reassess (conditional: if safe → continue engage else ReturnToSpawn).
+Blackboard Schema (replicated keys for AI)
+	•	spawnPosition: Vector3 (immutable)
+	•	targetId: networkId (null when none)
+	•	lastHitTimestamp: float
+	•	timeSinceLastSuccessfulHit: float
+	•	aggroed: bool
+	•	giveUpTimeout: float
+	•	maxPursueRadius: float
+	•	failedHitCounter: int
+	•	patienceThreshold: int (counter, e.g., allowed misses)
+	•	currentState: FSMStateEnum
+3.3 FSM / BT runtime constraints & determinism
+	•	Low‑level FSM is authoritative and small; it runs on server tick and is deterministic (no random branching that affects shared state).
+	•	BT runs on server; clients run a local approximation for visual responsiveness (prediction) but authoritative decisions (aggro, HP, reward drops) are server‑resolved.
+	•	Use blackboard replication sparingly: replicate minimal keys (targetId, currentState for debug/visuals). Avoid full BT replication.
+3.4 NavMesh & pathfinding integration
+	•	Use AI Navigation package NavMeshSurface/Modifier/Link components authoring to bake dynamic navigable surfaces and OffMeshLinks for jumps. Use Agent settings per archetype (height, radius). Unity Documentation
+	•	For jumping/double‑jump behaviors: NavMeshAgent alone does not handle midair double-jump; combine path-following with physics impulses (Unity Physics)—perform a hybrid move:
+	◦	Compute next path corner; if path requires vertical traversal beyond stepHeight, trigger Jump action (apply vertical velocity via Physics).
+	◦	For double jump, the BT can initiate a midair impulse when canDoubleJump == true and trajectory evaluation indicates benefit.
+3.5 Attack & animation timing (atomic)
+	•	Use animation event hooks to mark attack hit windows. Example timeline:
+	◦	AttackStart -> Windup -> HitWindowStart -> HitWindowEnd -> Recovery -> AttackEnd.
+	•	FSM MeleeAttack state covers the entire animation; collision checks only active during HitWindow. This reduces complexity and ensures deterministic windows.
+3.6 AI damage/aggro rules (exact per your spec)
+	•	Enemies do not patrol.
+	•	On damage received:
+	◦	If enemy aggroed==false, set aggroed=true, target=attacker, enter Alerted then Pursue.
+	◦	On successful hits, reset timeSinceLastSuccessfulHit.
+	◦	If timeSinceLastSuccessfulHit >= giveUpTimeout OR distanceToSpawn >= maxPursueRadius, enemy will ReturnToSpawn and reset aggroed=false.
+	•	If multiple players attack simultaneously: simple policy: target is the last attacker unless changed by BT priority (e.g., lower HP attacker is more attractive). For prototype, last attacker is acceptable.
