@@ -4,6 +4,11 @@ using UnityEngine.InputSystem;
 
 namespace MemeArena.Players
 {
+    /// <summary>
+    /// Handles player movement and input on the client and submits input to the
+    /// server for authoritative processing.  When firing, it calls the
+    /// FireServerRpc() method on the PlayerCombatController.
+    /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : NetworkBehaviour
     {
@@ -12,15 +17,32 @@ namespace MemeArena.Players
         private Vector2 _look;
         private bool _fire;
 
-        [Header("Tuning")]
+        [Header("Movement Tuning")]
         public float moveSpeed = 4f;
         public float rotationSpeed = 360f;
 
-        private void Awake() { _cc = GetComponent<CharacterController>(); }
+        private void Awake()
+        {
+            _cc = GetComponent<CharacterController>();
+        }
 
+        /// <summary>
+        /// Input callback for movement.  Bound via the Input System.
+        /// </summary>
         public void OnMove(InputAction.CallbackContext ctx) => _move = ctx.ReadValue<Vector2>();
+
+        /// <summary>
+        /// Input callback for look.  Bound via the Input System.
+        /// </summary>
         public void OnLook(InputAction.CallbackContext ctx) => _look = ctx.ReadValue<Vector2>();
-        public void OnFire(InputAction.CallbackContext ctx) { if (ctx.performed) _fire = true; }
+
+        /// <summary>
+        /// Input callback for firing.  Sets a flag to fire on the next fixed update.
+        /// </summary>
+        public void OnFire(InputAction.CallbackContext ctx)
+        {
+            if (ctx.performed) _fire = true;
+        }
 
         private void FixedUpdate()
         {
@@ -31,6 +53,9 @@ namespace MemeArena.Players
             }
         }
 
+        /// <summary>
+        /// Sends player input to the server for authoritative movement and firing.
+        /// </summary>
         [ServerRpc]
         private void SubmitInputServerRpc(Vector2 move, Vector2 look, bool fire)
         {
@@ -47,7 +72,12 @@ namespace MemeArena.Players
             if (fire)
             {
                 var pc = GetComponent<PlayerCombatController>();
-                if (pc) pc.ServerFire();
+                if (pc != null)
+                {
+                    // Call the RPC on the combat controller.  The method name ends
+                    // with "ServerRpc" to satisfy NGO conventions.
+                    pc.FireServerRpc();
+                }
             }
         }
     }

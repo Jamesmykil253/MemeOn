@@ -22,6 +22,34 @@ namespace MemeArena.Combat
         private ulong _ownerId;
 
         /// <summary>
+        /// Launches the projectile from a given owner with specified parameters.  This
+        /// wrapper exists for compatibility with older scripts that call
+        /// ProjectileServer.Launch().  It assigns the damage, speed and lifetime
+        /// fields and calls Init() with the forward direction of the owner.
+        /// </summary>
+        /// <param name="owner">The GameObject that fired this projectile.</param>
+        /// <param name="damage">Damage value to apply on hit.</param>
+        /// <param name="speed">Projectile travel speed in meters per second.</param>
+        /// <param name="lifetime">How many seconds the projectile should live.</param>
+        public void Launch(GameObject owner, int damage, float speed, float lifetime)
+        {
+            this.damage = damage;
+            this.speed = speed;
+            this.lifetime = lifetime;
+            Vector3 direction = owner != null ? owner.transform.forward : Vector3.forward;
+            ulong ownerId = 0;
+            if (owner != null)
+            {
+                var netObj = owner.GetComponent<NetworkObject>();
+                if (netObj != null)
+                {
+                    ownerId = netObj.NetworkObjectId;
+                }
+            }
+            Init(direction, ownerId);
+        }
+
+        /// <summary>
         /// Initializes the projectile's movement direction and owner. Must be called
         /// immediately after spawning on the server.
         /// </summary>

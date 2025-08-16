@@ -3,24 +3,20 @@ using UnityEngine;
 namespace MemeArena.AI
 {
     /// <summary>
-    /// Centralized constants to keep terminology aligned across docs and code.
+    /// Defines common tag strings used by the AI system.  Storing them in a
+    /// centralised class avoids typos in string literals throughout the codebase.
     /// </summary>
     public static class AITags
     {
-        // Blackboard keys (names chosen to match design docs)
-        public const string SpawnPosition = "spawnPosition";
-        public const string TargetId = "targetId";
-        public const string TimeSinceLastSuccessfulHit = "timeSinceLastSuccessfulHit";
-        public const string LastKnownTargetPosition = "lastKnownTargetPosition";
-
-        // Event keys
-        public const string OnDamageReceived = "OnDamageReceived";
-        public const string OnSuccessfulHit = "OnSuccessfulHit";
-        public const string OnFailedHit = "OnFailedHit";
-
-        // Layers / Tags
+        /// <summary>
+        /// Tag used to identify player-controlled characters.  Assign this tag to
+        /// all player prefabs in the Unity Inspector.
+        /// </summary>
         public const string PlayerTag = "Player";
-        public const string EnemyTag  = "Enemy";
-        public const string ProjectileLayerName = "Projectile";
+
+        /// <summary>
+        /// Tag used to identify AI enemies.  Assign this tag to AI prefabs.
+        /// </summary>
+        public const string EnemyTag = "Enemy";
     }
 }

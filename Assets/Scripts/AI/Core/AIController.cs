@@ -43,6 +43,11 @@ namespace MemeArena.AI
         private float _btTickTimer;
         private bool _initialized;
 
+        // Legacy attack cooldown timer used by older AI scripts.  Counts down in
+        // Update() and is checked via OffCooldown().  Do not replicate this
+        // value across the network.
+        private float _legacyAttackCooldownTimer;
+
         /// <summary>
         /// Exposes the blackboard for easy access by states and behaviour tree nodes.
         /// </summary>
@@ -67,15 +72,21 @@ namespace MemeArena.AI
         /// </summary>
         public enum AIStateId
         {
+            // Legacy sentinel states (for backward compatibility with older FSM/BT scripts)
             Idle,
+            AcquireTarget,
+            Aim,
+            Attack,
+            Cooldown,
+            Evade,
+            Stunned,
+            Dead,
+            // New hybrid FSM states from the updated design
+            ReturnToSpawn,
             Alert,
             Pursue,
             MeleeAttack,
-            RangedAttack,
-            Evade,
-            Stunned,
-            ReturnToSpawn,
-            Dead
+            RangedAttack
         }
 
         private void Awake()
@@ -83,6 +94,12 @@ namespace MemeArena.AI
             _blackboard = GetComponent<AIBlackboard>();
             _characterController = GetComponent<CharacterController>();
             _healthServer = GetComponent<HealthServer>();
+
+            // Legacy wrapper for the old FSM bridge.  Older scripts expect a "fsm"
+            // object with a ChangeState method that accepts an AIStateId.  We
+            // construct it here so that AIController_FSMBridge.cs can compile
+            // without modification.  See the FsmCompat nested class below.
+            fsm = new FsmCompat(this);
 
             // Assign config from blackboard if not set explicitly.
             if (_config == null && _blackboard.config != null)
@@ -96,6 +113,9 @@ namespace MemeArena.AI
 
             // Set initial blackboard values.
             _blackboard.spawnPosition = transform.position;
+
+            // Initialize the legacy cooldown timer to ready state
+            _legacyAttackCooldownTimer = 0f;
         }
 
         public override void OnNetworkSpawn()
@@ -141,6 +161,14 @@ namespace MemeArena.AI
                 float step = _aiTickTimer;
                 _aiTickTimer = 0f;
                 _currentState?.Tick(step);
+            }
+
+            // Update legacy attack cooldown timer.  Legacy scripts call
+            // OffCooldown() to check this value; decrement it each frame on the
+            // server to ensure proper timing.
+            if (_legacyAttackCooldownTimer > 0f)
+            {
+                _legacyAttackCooldownTimer -= dt;
             }
         }
 
@@ -231,6 +259,201 @@ namespace MemeArena.AI
             // CharacterController.Move with zero will have no effect; this method exists for clarity.
         }
 
+        #endregion
+
+        #region Legacy FSM/BT compatibility methods
+
+        // Some of the older FSM and behaviour tree scripts (e.g. AcquireTargetState,
+        // AimState, AttackState, CooldownState and various BT nodes) expect the
+        // AIController to expose certain methods.  The following wrappers bridge
+        // those legacy expectations to the new deterministic AI implementation.
+
+        /// <summary>
+        /// Returns true if the attack cooldown has finished.  Legacy scripts call
+        /// this to decide when the AI is ready to fire another projectile or
+        /// perform another melee attack.  This uses an internal timer that
+        /// counts down in Update().
+        /// </summary>
+        public bool OffCooldown()
+        {
+            return _legacyAttackCooldownTimer <= 0f;
+        }
+
+        /// <summary>
+        /// Starts the attack cooldown timer.  Call this after firing an attack.
+        /// The duration is taken from the AIConfig if available; otherwise
+        /// defaults to one second.
+        /// </summary>
+        public void StartCooldown()
+        {
+            float cd = 1f;
+            if (_config != null)
+            {
+                cd = _config.attackCooldown;
+            }
+            _legacyAttackCooldownTimer = cd;
+        }
+
+        /// <summary>
+        /// Fire a ranged attack.  Legacy scripts call this method to spawn a
+        /// projectile.  This simply delegates to PerformRangedAttack().
+        /// </summary>
+        public void Fire()
+        {
+            PerformRangedAttack();
+        }
+
+        /// <summary>
+        /// Moves the AI in a deterministic manner given a direction and delta time.
+        /// Older scripts call this to move in a straight line independent of the
+        /// physics system.  The speed is taken from the character stats if
+        /// available; otherwise uses 2 m/s.
+        /// </summary>
+        public void MoveDeterministic(Vector3 direction, float deltaTime)
+        {
+            if (direction.sqrMagnitude < Mathf.Epsilon) return;
+            float speed = (_blackboard.stats != null) ? _blackboard.stats.moveSpeed : 2f;
+            Vector3 move = direction.normalized * speed * deltaTime;
+            _characterController.Move(move);
+            // Rotate to face the movement direction
+            Quaternion targetRot = Quaternion.LookRotation(direction.normalized);
+            float rotSpeed = (_blackboard.stats != null) ? _blackboard.stats.rotationSpeed : 360f;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotSpeed * deltaTime);
+        }
+
+        /// <summary>
+        /// Returns the Transform of the current target if one exists.  Used by
+        /// legacy Aim/Attack states to orient towards the target.  If no target
+        /// exists the return value is null.
+        /// </summary>
+        public Transform TargetTransform()
+        {
+            NetworkObject target = FindTargetNetworkObject();
+            return target != null ? target.transform : null;
+        }
+
+        /// <summary>
+        /// Rotates the AI to face a world position.  Used by legacy Aim states.
+        /// </summary>
+        public void FaceToward(Vector3 worldPosition, float deltaTime)
+        {
+            Vector3 dir = worldPosition - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < Mathf.Epsilon) return;
+            Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+            float rotSpeed = (_blackboard.stats != null) ? _blackboard.stats.rotationSpeed : 360f;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotSpeed * deltaTime);
+        }
+
+        /// <summary>
+        /// Determines whether the specified target is within attack range.  Uses the
+        /// rangedRange from AIConfig if present; otherwise defaults to 10 meters.
+        /// </summary>
+        public bool InAttackRange(Transform t)
+        {
+            if (t == null) return false;
+            float range = 10f;
+            if (_config != null)
+            {
+                range = _config.rangedRange;
+            }
+            return Vector3.Distance(transform.position, t.position) <= range;
+        }
+
+        /// <summary>
+        /// Returns true if the AI currently has a target assigned on the blackboard.
+        /// </summary>
+        public bool HasTarget()
+        {
+            return _blackboard.targetId != 0;
+        }
+
+        #endregion
+
+        #region Legacy FSM bridge
+
+        /// <summary>
+        /// A simple wrapper that exposes a ChangeState method for legacy FSM bridges.
+        /// Older scripts reference a "fsm" property on AIController to change
+        /// states by enum identifier.  This wrapper calls through to
+        /// AIController.ChangeState(AIStateId).
+        /// </summary>
+        private class FsmCompat
+        {
+            private readonly AIController _owner;
+            public FsmCompat(AIController owner) { _owner = owner; }
+            public void ChangeState(AIStateId id)
+            {
+                _owner.ChangeState(id);
+            }
+        }
+
+        // This field is used by AIController_FSMBridge.cs.  Do not remove.
+        private FsmCompat fsm;
+
+        /// <summary>
+        /// Change state via enum identifier.  Legacy wrappers use this to map
+        /// older state names onto the new FSM implementation.  You can modify
+        /// the mapping logic here to fine tune how legacy states are routed.
+        /// </summary>
+        /// <param name="stateId">The legacy state identifier.</param>
+        public void ChangeState(AIStateId stateId)
+        {
+            // Map legacy state identifiers to the new state class names.  If a
+            // mapping is not defined explicitly, fall back to IdleState.
+            switch (stateId)
+            {
+                case AIStateId.Idle:
+                    ChangeState(nameof(IdleState));
+                    break;
+                case AIStateId.AcquireTarget:
+                    // AcquireTarget roughly corresponds to becoming alert/pursuing.
+                    ChangeState(nameof(AlertState));
+                    break;
+                case AIStateId.Aim:
+                    // Aim maps to pursuing the target while facing it.
+                    ChangeState(nameof(PursueState));
+                    break;
+                case AIStateId.Attack:
+                    // Attack triggers a ranged attack by default.
+                    ChangeState(nameof(RangedAttackState));
+                    break;
+                case AIStateId.Cooldown:
+                    // After a legacy cooldown, resume pursuing.
+                    ChangeState(nameof(PursueState));
+                    break;
+                case AIStateId.Evade:
+                    ChangeState(nameof(EvadeState));
+                    break;
+                case AIStateId.Stunned:
+                    ChangeState(nameof(StunnedState));
+                    break;
+                case AIStateId.Dead:
+                    ChangeState(nameof(DeadState));
+                    break;
+                case AIStateId.ReturnToSpawn:
+                    ChangeState(nameof(ReturnToSpawnState));
+                    break;
+                case AIStateId.Alert:
+                    ChangeState(nameof(AlertState));
+                    break;
+                case AIStateId.Pursue:
+                    ChangeState(nameof(PursueState));
+                    break;
+                case AIStateId.MeleeAttack:
+                    ChangeState(nameof(MeleeAttackState));
+                    break;
+                case AIStateId.RangedAttack:
+                    ChangeState(nameof(RangedAttackState));
+                    break;
+                default:
+                    ChangeState(nameof(IdleState));
+                    break;
+            }
+        }
+
+        #endregion
+
         /// <summary>
         /// Performs a melee attack on the current target. This method is called by
         /// MeleeAttackState. It looks up the target's HealthServer and applies damage.
@@ -275,8 +498,6 @@ namespace MemeArena.AI
             Vector3 dir = (target.transform.position - spawnPos).normalized;
             NetworkSpawnProjectileServerRpc(spawnPos, dir);
         }
-
-        #endregion
 
         #region RPCs
 

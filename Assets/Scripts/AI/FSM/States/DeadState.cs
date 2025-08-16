@@ -17,7 +17,9 @@ namespace MemeArena.AI
         {
             base.Enter();
             // Notify AISpawnerManager about death so it can respawn later.
-            AISpawnerManager spawner = Object.FindObjectOfType<AISpawnerManager>();
+            // Use the recommended Object.FindAnyObjectByType API to avoid deprecation
+            // warnings on newer Unity versions (see docs).
+            AISpawnerManager spawner = Object.FindAnyObjectByType<AISpawnerManager>();
             if (spawner != null)
             {
                 spawner.HandleAIDeath(controller.NetworkObjectId);

@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 2114306123732695506}
   - component: {fileID: 3143949475707213328}
   - component: {fileID: 1493298492398594164}
-  - component: {fileID: 9024481459536541114}
   - component: {fileID: 1112101952136533399}
   - component: {fileID: 4973702492459213551}
   - component: {fileID: 2338156717909988826}
@@ -169,27 +168,6 @@ SkinnedMeshRenderer:
     m_Center: {x: 0, y: 1.62, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
   m_DirtyAABB: 0
---- !u!114 &9024481459536541114
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7f0ef73e695694009963ec0eac7afbc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  animator: {fileID: 0}
-  moveSpeed: 3.5
-  meleeWeapon: {fileID: 504809205203071022}
-  projectilePrefab: {fileID: 4656097928787645236, guid: 7cbf3c1704be44cbbbb969254cf8a19a, type: 3}
-  projectileMuzzle: {fileID: 6456440799871461692}
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 1088
 --- !u!114 &1112101952136533399
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,11 +182,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   radius: 1.6
+  range: 1.8
   damage: 20
   hitMask:
     serializedVersion: 2
     m_Bits: 1088
-  maxHits: 1
 --- !u!114 &4973702492459213551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -223,12 +201,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 12
-  lifeSeconds: 3
-  maxDistance: 30
   damage: 10
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 1088
+  lifetime: 5
 --- !u!114 &2338156717909988826
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -257,16 +231,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  ai: {fileID: 0}
-  idle: {r: 0.8, g: 0.8, b: 0.8, a: 1}
-  alert: {r: 1, g: 0.92, b: 0.16, a: 1}
-  pursue: {r: 0.2, g: 0.6, b: 1, a: 1}
-  melee: {r: 1, g: 0.3, b: 0.3, a: 1}
-  ranged: {r: 0.6, g: 0.2, b: 1, a: 1}
-  evade: {r: 0.2, g: 1, b: 0.6, a: 1}
-  stunned: {r: 0.1, g: 0.1, b: 0.1, a: 1}
-  returnToSpawn: {r: 0.4, g: 0.4, b: 1, a: 1}
-  dead: {r: 0, g: 0, b: 0, a: 1}
+  targetRenderer: {fileID: 1493298492398594164}
+  idleColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  alertColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  pursueColor: {r: 1, g: 0, b: 0, a: 1}
+  meleeColor: {r: 1, g: 0.5, b: 0, a: 1}
+  rangedColor: {r: 0, g: 1, b: 1, a: 1}
+  evadeColor: {r: 0, g: 1, b: 0, a: 1}
+  stunColor: {r: 0, g: 0, b: 1, a: 1}
+  returnColor: {r: 1, g: 0, b: 1, a: 1}
+  deadColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!114 &3877557719241085013
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -357,11 +331,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   radius: 1.6
+  range: 1.8
   damage: 20
   hitMask:
     serializedVersion: 2
     m_Bits: 64
-  maxHits: 1
 --- !u!1 &6345102162441705621
 GameObject:
   m_ObjectHideFlags: 0

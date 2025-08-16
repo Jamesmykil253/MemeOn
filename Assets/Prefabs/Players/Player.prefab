@@ -66,7 +66,6 @@ GameObject:
   - component: {fileID: 3259686676424319703}
   - component: {fileID: 735739966014345678}
   - component: {fileID: 1296336912210658751}
-  - component: {fileID: 8004026064465381187}
   - component: {fileID: 3257756471342274038}
   - component: {fileID: 6365690993660098861}
   - component: {fileID: 6068574504525434252}
@@ -239,22 +238,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &8004026064465381187
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cdffc5480044d4aada5e8452d5f906a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  CurrentHealth:
-    m_InternalValue: 100
 --- !u!114 &3257756471342274038
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -269,11 +252,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   radius: 1.6
+  range: 1.8
   damage: 20
   hitMask:
     serializedVersion: 2
     m_Bits: 128
-  maxHits: 1
 --- !u!114 &6365690993660098861
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -288,12 +271,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 12
-  lifeSeconds: 3
-  maxDistance: 30
   damage: 10
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 128
+  lifetime: 5
 --- !u!114 &6068574504525434252
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -335,16 +314,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  ai: {fileID: 0}
-  idle: {r: 0.8, g: 0.8, b: 0.8, a: 1}
-  alert: {r: 1, g: 0.92, b: 0.16, a: 1}
-  pursue: {r: 0.2, g: 0.6, b: 1, a: 1}
-  melee: {r: 1, g: 0.3, b: 0.3, a: 1}
-  ranged: {r: 0.6, g: 0.2, b: 1, a: 1}
-  evade: {r: 0.2, g: 1, b: 0.6, a: 1}
-  stunned: {r: 0.1, g: 0.1, b: 0.1, a: 1}
-  returnToSpawn: {r: 0.4, g: 0.4, b: 1, a: 1}
-  dead: {r: 0, g: 0, b: 0, a: 1}
+  targetRenderer: {fileID: 735739966014345678}
+  idleColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  alertColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  pursueColor: {r: 1, g: 0, b: 0, a: 1}
+  meleeColor: {r: 1, g: 0.5, b: 0, a: 1}
+  rangedColor: {r: 0, g: 1, b: 1, a: 1}
+  evadeColor: {r: 0, g: 1, b: 0, a: 1}
+  stunColor: {r: 0, g: 0, b: 1, a: 1}
+  returnColor: {r: 1, g: 0, b: 1, a: 1}
+  deadColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!114 &3786457875211736993
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -419,11 +398,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   radius: 1.6
+  range: 1.8
   damage: 20
   hitMask:
     serializedVersion: 2
     m_Bits: 128
-  maxHits: 1
 --- !u!1 &5053009380701313563
 GameObject:
   m_ObjectHideFlags: 0
