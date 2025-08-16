@@ -1,0 +1,44 @@
+using Unity.Netcode;
+using UnityEngine;
+
+namespace MemeArena.Combat
+{
+    /// <summary>
+    /// Minimal server-side melee hitbox sweeper.
+    /// </summary>
+    public class MeleeWeaponServer : NetworkBehaviour
+    {
+        [Min(0f)] public float radius = 1.2f;
+        [Min(0f)] public float range = 1.8f;
+        public int damage = 15;
+        public LayerMask hitMask = ~0;
+
+        public void PerformSwing(GameObject owner)
+        {
+            if (!IsServer) return;
+
+            var origin = owner.transform.position + Vector3.up * 0.9f;
+            var dir = owner.transform.forward;
+            var center = origin + dir * range;
+
+            var hits = Physics.OverlapSphere(center, radius, hitMask, QueryTriggerInteraction.Ignore);
+            bool hitAny = false;
+            foreach (var h in hits)
+            {
+                if (h.attachedRigidbody && h.attachedRigidbody.gameObject == owner) continue;
+
+                var dmg = h.GetComponentInParent<IDamageable>();
+                if (dmg != null)
+                {
+                    dmg.ApplyDamage(damage, owner, h.ClosestPoint(center));
+                    hitAny = true;
+                }
+            }
+
+            if (!hitAny)
+            {
+                HitEvents.RaiseFailedHit(new HitEvents.DamageEvent { Source = owner, Victim = null, HitPoint = center, Amount = 0 });
+            }
+        }
+    }
+}

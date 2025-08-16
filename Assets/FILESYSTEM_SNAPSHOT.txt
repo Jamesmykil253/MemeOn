@@ -1,0 +1,58 @@
+/mnt/data/
+├── DebugPack_Staging/
+│   └── Assets/
+│       └── Scripts/
+│           ├── Combat/
+│           │   ├── [CrowdControlServer.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Combat/CrowdControlServer.cs)
+│           │   ├── [MeleeWeaponServer.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Combat/MeleeWeaponServer.cs)
+│           │   └── [ProjectileServer.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Combat/ProjectileServer.cs)
+│           └── Debug/
+│               └── [DebugColorState.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Debug/DebugColorState.cs)
+├── PrefabAuditPack/
+│   └── Assets/
+│       └── Editor/
+│           ├── [MissingScriptsReport.cs](sandbox:/mnt/data/PrefabAuditPack/Assets/Editor/MissingScriptsReport.cs)
+│           ├── [PrefabAutoWire.cs](sandbox:/mnt/data/PrefabAuditPack/Assets/Editor/PrefabAutoWire.cs)
+│           └── [PrefabDependencyValidator.cs](sandbox:/mnt/data/PrefabAuditPack/Assets/Editor/PrefabDependencyValidator.cs)
+├── UniteCameraPack/
+│   └── Assets/
+│       └── Scripts/
+│           └── Camera/
+│               ├── [CameraBootstrap.cs](sandbox:/mnt/data/UniteCameraPack/Assets/Scripts/Camera/CameraBootstrap.cs)
+│               ├── [LimitedViewController.cs](sandbox:/mnt/data/UniteCameraPack/Assets/Scripts/Camera/LimitedViewController.cs)
+│               └── [UniteCameraController.cs](sandbox:/mnt/data/UniteCameraPack/Assets/Scripts/Camera/UniteCameraController.cs)
+├── [MOBA_AllScripts_2025-08-16.zip](sandbox:/mnt/data/MOBA_AllScripts_2025-08-16.zip)
+├── [MOBA_CoreScripts_Full_2025-08-16.zip](sandbox:/mnt/data/MOBA_CoreScripts_Full_2025-08-16.zip)
+├── [MOBA_DebugColorPack_2025-08-16.zip](sandbox:/mnt/data/MOBA_DebugColorPack_2025-08-16.zip)
+├── [MOBA_PrefabAuditPack_2025-08-16.zip](sandbox:/mnt/data/MOBA_PrefabAuditPack_2025-08-16.zip)
+├── [UniteCameraPack_2025-08-16.zip](sandbox:/mnt/data/UniteCameraPack_2025-08-16.zip)
+├── MOBA_CoreScripts_Full/
+│   ├── AI/
+│   │   ├── [AIBehaviorTree.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/AI/AIBehaviorTree.cs)
+│   │   ├── [AIBlackboard.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/AI/AIBlackboard.cs)
+│   │   └── [AIController.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/AI/AIController.cs)
+│   ├── Combat/
+│   │   ├── [CCTargetServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/CCTargetServer.cs)
+│   │   ├── [CrowdControlServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/CrowdControlServer.cs)
+│   │   ├── [MeleeWeaponServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/MeleeWeaponServer.cs)
+│   │   └── [ProjectileServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/ProjectileServer.cs)
+│   ├── Debug/
+│   │   └── [AIStateDebugColor.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Debug/AIStateDebugColor.cs)
+│   └── Shared/
+│       └── [Team.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Shared/Team.cs)
+├── Executive Concept.md
+├── DOCUMENT 1 — GAME DESIGN DOCUMENT.md
+├── DOCUMENT 2 — GAME DESIGN DOCUMENT (GDD).md
+├── DOCUMENT 3 — TECHNICAL DESIGN DOCUMENT (TDD).MD
+├── DOCUMENT 4 — PROJECT PLAN.md
+├── DOCUMENT 5 — ASSET LIST.md
+├── DOCUMENT 6 — DEVELOPMENT CHECKLIST.md
+├── DOCUMENT 7 — AI LOGIC REFERENCE (FSM + BT).md
+├── Engineering Checklist.md
+├── FSM.md
+├── Game Design Document.md
+├── Implementation notes.md
+├── PREFAB INTEGRATION GUIDE.md
+├── Project Plan.md
+├── Technical Design Document.md
+└── Usage Notes for AISpawnerManager.md
