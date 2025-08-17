@@ -164,10 +164,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  _config: {fileID: 0}
-  _stats: {fileID: 0}
+  _config: {fileID: 11400000, guid: a1d90dfe611324b6a93f79049e2f09a5, type: 2}
+  _stats: {fileID: 11400000, guid: c95e4f1bee2784eaba436e157f757605, type: 2}
   projectilePrefab: {fileID: 8242624005166438942, guid: 7cbf3c1704be44cbbbb969254cf8a19a, type: 3}
-  muzzle: {fileID: 0}
+  muzzle: {fileID: 6456440799871461692}
 --- !u!114 &604985567237015692
 MonoBehaviour:
   m_ObjectHideFlags: 0
