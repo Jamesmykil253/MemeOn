@@ -4,8 +4,8 @@ using UnityEngine;
 namespace MemeArena.Combat
 {
     /// <summary>
-    /// Server-authoritative health. Fixes the NV-before-spawn warning by
-    /// initializing in OnNetworkSpawn (NOT Awake/Start).
+    /// Server-authoritative health. Initializes in OnNetworkSpawn (not Awake/Start)
+    /// to avoid the NetworkVariable pre-spawn warning.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     public class HealthNetwork : NetworkBehaviour
@@ -20,24 +20,23 @@ namespace MemeArena.Combat
 
         public override void OnNetworkSpawn()
         {
-            // Initialize only once the NetworkObject is spawned.
             if (IsServer)
             {
-                // Preserve value if this is a respawn, otherwise set to max.
+                // If value invalid or zero at spawn, set to max
                 if (CurrentHealth.Value <= 0 || CurrentHealth.Value > maxHealth)
                     CurrentHealth.Value = maxHealth;
             }
         }
 
-        [Server] public void Heal(int amount)
+        public void Heal(int amount)
         {
-            if (amount <= 0 || !IsServer) return;
+            if (!IsServer || amount <= 0) return;
             CurrentHealth.Value = Mathf.Min(maxHealth, CurrentHealth.Value + amount);
         }
 
-        [Server] public void Damage(int amount)
+        public void Damage(int amount)
         {
-            if (amount <= 0 || !IsServer) return;
+            if (!IsServer || amount <= 0) return;
             if (IsDead) return;
             CurrentHealth.Value = Mathf.Max(0, CurrentHealth.Value - amount);
             if (CurrentHealth.Value == 0)

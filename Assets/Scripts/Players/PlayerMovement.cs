@@ -6,9 +6,7 @@ namespace MemeArena.Players
 {
     /// <summary>
     /// Server-authoritative CharacterController movement with client input.
-    /// - Owner client reads Input System "Move" action
-    /// - Sends input to server via ServerRpc each FixedUpdate
-    /// - Server applies movement (gravity + optional external speed multiplier)
+    /// Owner reads input; server applies motion. No NGO-incompatible attributes.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(CharacterController))]
@@ -23,9 +21,9 @@ namespace MemeArena.Players
         public InputActionReference moveAction; // Vector2 action ("Move")
 
         CharacterController _cc;
-        Vector3 _serverVelocity;            // server-side vertical velocity
-        Vector2 _lastClientMove;            // last received input from owner
-        float _externalSpeedMultiplier = 1f; // e.g., enemy goal slow
+        Vector3 _serverVelocity;
+        Vector2 _lastClientMove;
+        float _externalSpeedMultiplier = 1f;
 
         void Awake()
         {
@@ -58,13 +56,12 @@ namespace MemeArena.Players
 
             if (IsServer)
             {
-                // Apply gravity
+                // gravity
                 if (_cc.isGrounded && _serverVelocity.y < 0f)
-                    _serverVelocity.y = -1f; // stick to ground
+                    _serverVelocity.y = -1f;
                 else
                     _serverVelocity.y += gravity * Time.fixedDeltaTime;
 
-                // Move horizontal from last client input
                 Vector3 moveDir = new Vector3(_lastClientMove.x, 0f, _lastClientMove.y);
                 if (moveDir.sqrMagnitude > 1f) moveDir.Normalize();
                 float speed = moveSpeed * _externalSpeedMultiplier;
@@ -72,7 +69,6 @@ namespace MemeArena.Players
                 Vector3 disp = (moveDir * speed + new Vector3(0f, _serverVelocity.y, 0f)) * Time.fixedDeltaTime;
                 _cc.Move(disp);
 
-                // Rotate toward movement
                 if (moveDir.sqrMagnitude > 0.0001f)
                 {
                     Quaternion target = Quaternion.LookRotation(moveDir, Vector3.up);
@@ -87,9 +83,10 @@ namespace MemeArena.Players
             _lastClientMove = move;
         }
 
-        /// <summary> Apply slow/heal effects externally via zones. 1 = normal. </summary>
-        [Server] public void SetExternalSpeedMultiplier(float mult)
+        /// <summary>Apply slow/heal effects externally via zones. 1 = normal.</summary>
+        public void SetExternalSpeedMultiplier(float mult)
         {
+            if (!IsServer) return;
             _externalSpeedMultiplier = Mathf.Clamp(mult, 0.1f, 3f);
         }
     }
