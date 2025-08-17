@@ -3,42 +3,27 @@ using UnityEngine;
 namespace MemeArena.AI
 {
     /// <summary>
-    /// Executes a melee attack on the current target. After the attack is performed
-    /// the AI returns to Pursue to re-evaluate. The cooldown is controlled via
-    /// AIConfig.attackCooldown.
+    /// Executes a melee attack and then waits for the attack cooldown before
+    /// returning to the pursue state.  On entry the attack is immediately
+    /// attempted; the cooldown timer always counts down even if the attack
+    /// fails.
     /// </summary>
     public class MeleeAttackState : AIState
     {
         private float _cooldownTimer;
-        private bool _hasAttacked;
 
-        public MeleeAttackState(AIController controller) : base(controller) { }
+        public MeleeAttackState(AIController controller) : base(controller, nameof(MeleeAttackState)) { }
 
         public override void Enter()
         {
-            base.Enter();
-            _hasAttacked = false;
+            // Perform attack once on entry.
+            controller.PerformMeleeAttack();
             _cooldownTimer = controller.Config.attackCooldown;
         }
 
-        public override void Tick(float deltaTime)
+        public override void Tick(float dt)
         {
-            // If target is gone, return to spawn.
-            if (!controller.IsTargetAlive())
-            {
-                controller.ChangeState(nameof(ReturnToSpawnState));
-                return;
-            }
-
-            // Attack once on first tick.
-            if (!_hasAttacked)
-            {
-                controller.PerformMeleeAttack();
-                _hasAttacked = true;
-            }
-
-            // Wait for cooldown before chasing again.
-            _cooldownTimer -= deltaTime;
+            _cooldownTimer -= dt;
             if (_cooldownTimer <= 0f)
             {
                 controller.ChangeState(nameof(PursueState));

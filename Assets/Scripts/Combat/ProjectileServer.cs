@@ -1,87 +1,167 @@
 using UnityEngine;
 using Unity.Netcode;
+using MemeArena.Network;
+using MemeArena.AI;
 
 namespace MemeArena.Combat
 {
     /// <summary>
-    /// Server-side projectile that moves in a straight line and applies damage upon
-    /// collision with a HealthServer. The projectile despawns after a lifetime.
+    /// Handles server‑side behaviour for projectiles.  Projectiles are
+    /// authoritative: they move and apply damage only on the server.  Clients
+    /// simply visualise their movement.  When a projectile hits a valid
+    /// target it applies damage and despawns.  If it expires without a hit
+    /// it despawns and notifies the owner via OnFailedHit.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(Collider))]
     public class ProjectileServer : NetworkBehaviour
     {
-        [Tooltip("Speed of the projectile in meters per second.")]
-        public float speed = 10f;
-        [Tooltip("Damage dealt on hit.")]
+        [Tooltip("Units per second that this projectile travels.")]
+        public float speed = 20f;
+
+        [Tooltip("Lifetime in seconds before the projectile despawns if it doesn't hit anything.")]
+        public float lifeSeconds = 3f;
+
+        [Tooltip("Damage applied on hit.")]
         public int damage = 10;
-        [Tooltip("Lifetime of the projectile in seconds.")]
-        public float lifetime = 5f;
 
-        private Vector3 _direction;
-        private ulong _ownerId;
+        // Owner and team assigned at spawn.  Owner is the clientId of the
+        // entity that fired the projectile; ownerTeam is used to prevent
+        // friendly fire.
+        [HideInInspector] public ulong ownerClientId;
+        [HideInInspector] public int ownerTeam;
 
-        /// <summary>
-        /// Launches the projectile from a given owner with specified parameters.  This
-        /// wrapper exists for compatibility with older scripts that call
-        /// ProjectileServer.Launch().  It assigns the damage, speed and lifetime
-        /// fields and calls Init() with the forward direction of the owner.
-        /// </summary>
-        /// <param name="owner">The GameObject that fired this projectile.</param>
-        /// <param name="damage">Damage value to apply on hit.</param>
-        /// <param name="speed">Projectile travel speed in meters per second.</param>
-        /// <param name="lifetime">How many seconds the projectile should live.</param>
-        public void Launch(GameObject owner, int damage, float speed, float lifetime)
+        private float _timer;
+
+        public override void OnNetworkSpawn()
         {
-            this.damage = damage;
-            this.speed = speed;
-            this.lifetime = lifetime;
-            Vector3 direction = owner != null ? owner.transform.forward : Vector3.forward;
-            ulong ownerId = 0;
-            if (owner != null)
+            base.OnNetworkSpawn();
+            if (IsServer)
             {
-                var netObj = owner.GetComponent<NetworkObject>();
-                if (netObj != null)
-                {
-                    ownerId = netObj.NetworkObjectId;
-                }
+                _timer = lifeSeconds;
             }
-            Init(direction, ownerId);
-        }
-
-        /// <summary>
-        /// Initializes the projectile's movement direction and owner. Must be called
-        /// immediately after spawning on the server.
-        /// </summary>
-        public void Init(Vector3 direction, ulong ownerId)
-        {
-            _direction = direction.normalized;
-            _ownerId = ownerId;
         }
 
         private void Update()
         {
             if (!IsServer) return;
-            transform.position += _direction * speed * Time.deltaTime;
-            lifetime -= Time.deltaTime;
-            if (lifetime <= 0f)
+            float dt = Time.deltaTime;
+            // Move forward in local space.
+            transform.position += transform.forward * speed * dt;
+            _timer -= dt;
+            if (_timer <= 0f)
             {
-                NetworkObject.Despawn();
+                NotifyOwnerFailure();
+                Despawn();
             }
         }
 
         private void OnTriggerEnter(Collider other)
         {
             if (!IsServer) return;
-            // Ignore trigger if collided with owner.
-            NetworkObject otherNetObj = other.GetComponent<NetworkObject>();
-            if (otherNetObj != null && otherNetObj.NetworkObjectId == _ownerId)
-                return;
-            var health = other.GetComponent<HealthServer>();
-            if (health != null)
+            // Ignore collisions with self or owner.
+            if (other.gameObject == gameObject) return;
+            // Check for health component.
+            NetworkHealth health = other.GetComponent<NetworkHealth>();
+            TeamId targetTeam = other.GetComponent<TeamId>();
+            if (health != null && targetTeam != null)
             {
-                health.ApplyDamageServerRpc(damage, _ownerId);
-                NetworkObject.Despawn();
+                // Only hit opposing teams.
+                if (targetTeam.team != ownerTeam)
+                {
+                    health.TakeDamageServerRpc(damage, ownerClientId);
+                    NotifyOwnerSuccess();
+                    Despawn();
+                    return;
+                }
+            }
+            // Otherwise ignore or pass through.  Note: environment collisions
+            // cause the projectile to despawn without hitting.
+            if (other.gameObject.layer == ProjectConstants.Layers.Environment)
+            {
+                NotifyOwnerFailure();
+                Despawn();
+            }
+        }
+
+        /// <summary>
+        /// Launches the projectile.  Called by the AI controller after spawn.
+        /// Sets the collider to a trigger to avoid interfering with physics.
+        /// </summary>
+        public void Launch()
+        {
+            // Ensure the collider is a trigger on the server.  This method is
+            // executed immediately after NetworkObject.Spawn().
+            Collider col = GetComponent<Collider>();
+            if (col != null)
+            {
+                col.isTrigger = true;
+            }
+        }
+
+        /// <summary>
+        /// Overload allowing callers to specify the initial direction, speed,
+        /// lifetime and damage of the projectile.  This is provided for
+        /// compatibility with older PlayerCombatController implementations
+        /// that pass these values directly to the projectile.  After
+        /// assigning the values, the method delegates to the parameterless
+        /// Launch() to configure the collider.  The timer is reset based on
+        /// the specified lifetime.
+        /// </summary>
+        /// <param name="direction">Normalized direction to travel in world space.</param>
+        /// <param name="newSpeed">Units per second.</param>
+        /// <param name="life">Lifetime in seconds.</param>
+        /// <param name="newDamage">Damage applied on hit.</param>
+        public void Launch(Vector3 direction, float newSpeed, float life, int newDamage)
+        {
+            // Update fields according to supplied parameters.
+            if (direction.sqrMagnitude > 1e-6f)
+            {
+                transform.forward = direction.normalized;
+            }
+            speed = newSpeed;
+            lifeSeconds = life;
+            damage = newDamage;
+            // Reset the internal life timer.
+            _timer = life;
+            // Delegate to the default launch behaviour to mark the collider as trigger.
+            Launch();
+        }
+
+        private void NotifyOwnerSuccess()
+        {
+            if (!IsServer) return;
+            // Find the owner's AIController and inform it of a successful hit.
+            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(ownerClientId))
+            {
+                var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerClientId].gameObject;
+                var ai = obj.GetComponent<AIController>();
+                ai?.OnSuccessfulHit();
+            }
+        }
+
+        private void NotifyOwnerFailure()
+        {
+            if (!IsServer) return;
+            // Notify the owner AI of a failed hit.
+            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(ownerClientId))
+            {
+                var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerClientId].gameObject;
+                var ai = obj.GetComponent<AIController>();
+                ai?.OnFailedHit();
+            }
+        }
+
+        private void Despawn()
+        {
+            // Safely despawn the projectile on the server.
+            if (IsSpawned)
+            {
+                GetComponent<NetworkObject>().Despawn(true);
+            }
+            else
+            {
+                Destroy(gameObject);
             }
         }
     }

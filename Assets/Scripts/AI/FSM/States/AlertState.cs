@@ -3,32 +3,33 @@ using UnityEngine;
 namespace MemeArena.AI
 {
     /// <summary>
-    /// AlertState provides a brief reaction delay after the AI is provoked before it
-    /// begins pursuing the attacker. This creates a more natural response rather than
-    /// immediately switching to the pursue state.
+    /// AlertState is entered when the AI has taken damage but has not yet
+    /// reacted.  The AI waits for a random reaction delay sampled from a
+    /// normal distribution defined by AIConfig.  Once the timer expires
+    /// it transitions into the PursueState.
     /// </summary>
     public class AlertState : AIState
     {
         private float _reactionTimer;
-        private float _reactionDelay;
 
-        public AlertState(AIController controller) : base(controller) { }
+        public AlertState(AIController controller) : base(controller, nameof(AlertState)) { }
 
         public override void Enter()
         {
-            base.Enter();
-            // Sample a reaction delay using a simple uniform distribution around the mean.
+            // Sample reaction delay using a simple normal distribution.
             float mean = controller.Config.reactionDelayMean;
             float std = controller.Config.reactionDelayStdDev;
-            // Approximate a Gaussian by summing two uniform randoms.
-            float randomSample = (Random.value + Random.value - 1f) * std;
-            _reactionDelay = Mathf.Max(0f, mean + randomSample);
-            _reactionTimer = _reactionDelay;
+            // Box‑Muller transform: generate two uniform random numbers and
+            // convert to a normally distributed value.
+            float u1 = Random.value;
+            float u2 = Random.value;
+            float randStdNormal = Mathf.Sqrt(-2f * Mathf.Log(u1)) * Mathf.Sin(2f * Mathf.PI * u2);
+            _reactionTimer = Mathf.Max(0f, mean + std * randStdNormal);
         }
 
-        public override void Tick(float deltaTime)
+        public override void Tick(float dt)
         {
-            _reactionTimer -= deltaTime;
+            _reactionTimer -= dt;
             if (_reactionTimer <= 0f)
             {
                 controller.ChangeState(nameof(PursueState));

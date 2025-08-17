@@ -3,215 +3,242 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using MemeArena.Combat;
+using MemeArena.Network;
 
 namespace MemeArena.AI
 {
     /// <summary>
-    /// AIController drives the finite state machine and coordinates with the behaviour tree.
-    /// It executes only on the server to preserve the server-authoritative model. Clients
-    /// receive replicated positions/rotations via Netcode components and may run a visual
-    /// approximation for smoothness, but no authoritative logic is executed on clients.
+    /// AIController drives the finite state machine and optionally a behaviour
+    /// tree.  It executes only on the server to preserve the
+    /// server‑authoritative model; clients receive position and rotation
+    /// updates through Netcode components such as NetworkTransform.  This
+    /// controller also exposes helper methods for moving, facing and
+    /// attacking.
     /// </summary>
     [RequireComponent(typeof(AIBlackboard))]
     [RequireComponent(typeof(CharacterController))]
-    // Use the fully qualified type here so Unity can attach the HealthServer from MemeArena.Combat.
-    [RequireComponent(typeof(MemeArena.Combat.HealthServer))]
+    [RequireComponent(typeof(NetworkHealth))]
+    // Note: declare AIController as partial to support extension in other files.
     public partial class AIController : NetworkBehaviour
     {
-        // Public references for inspector assignment.
-        [Header("AI Subsystems")]
+        [Header("AI References")]
         [SerializeField]
         private AIConfig _config;
 
-        [Tooltip("Projectile prefab used for ranged attacks. Must contain a NetworkObject and ProjectileServer.")]
+        [SerializeField]
+        private CharacterStats _stats;
+
+        [Tooltip("Prefab used for ranged attacks.  Must include a NetworkObject and ProjectileServer component.")]
         public GameObject projectilePrefab;
 
-        // Cached component references.
+        [Tooltip("Transform representing the muzzle position for projectile spawning.")]
+        public Transform muzzle;
+
+        // Internal references
         private AIBlackboard _blackboard;
         private CharacterController _characterController;
-        private HealthServer _healthServer;
+        private NetworkHealth _health;
 
-        // Behaviour tree placeholder. Not fully implemented in this prototype.
-        private AIBehaviorTree _behaviorTree;
-
-        // State machine data.
+        // FSM data
         private readonly Dictionary<string, AIState> _states = new();
         private AIState _currentState;
         private float _aiTickInterval;
         private float _btTickInterval;
-        private float _aiTickTimer;
-        private float _btTickTimer;
+        private float _aiTimer;
+        private float _btTimer;
         private bool _initialized;
 
-        // Legacy attack cooldown timer used by older AI scripts.  Counts down in
-        // Update() and is checked via OffCooldown().  Do not replicate this
-        // value across the network.
-        private float _legacyAttackCooldownTimer;
+        // Attack cooldown timer used by legacy helper methods.  When greater
+        // than zero, the AI is considered to be on cooldown.  It is
+        // decremented every frame in Update().  Legacy BT nodes rely on
+        // this timer to determine when the AI can fire again.
+        private float _attackCooldownTimer;
 
-        /// <summary>
-        /// Exposes the blackboard for easy access by states and behaviour tree nodes.
-        /// </summary>
+        // Legacy finite state machine wrapper.  Some deprecated scripts
+        // reference an `fsm` field on AIController.  It forwards
+        // ChangeState requests to this controller using a compatibility
+        // mapping defined in LegacyFSM.  Initialised in OnNetworkSpawn().
+        private LegacyFSM fsm;
+
+        // Simple behaviour tree placeholder; not fully implemented but
+        // included for extensibility.
+        private BehaviorTree _behaviorTree;
+
+        /// <summary> Exposes the blackboard for states and BT nodes. </summary>
         public AIBlackboard Blackboard => _blackboard;
 
-        /// <summary>
-        /// Exposes the AI configuration used by this controller.
-        /// </summary>
+        /// <summary> Exposes the AI configuration. </summary>
         public AIConfig Config => _config;
 
-        /// <summary>
-        /// Name of the current FSM state. Exposed for debugging and inspection. Note
-        /// that this value is only valid on the server; clients should not rely on it
-        /// for gameplay logic.
-        /// </summary>
-        public string CurrentStateName => _currentState?.Name ?? string.Empty;
+        /// <summary> Exposes the character stats. </summary>
+        public CharacterStats Stats => _stats;
 
-        /// <summary>
-        /// Enumeration of AI state identifiers. This mirrors the FSM states defined in
-        /// the design documents. Having this enum available resolves references in
-        /// legacy scripts such as AcquireTargetState that expect AIController.AIStateId.
-        /// </summary>
-        public enum AIStateId
-        {
-            // Legacy sentinel states (for backward compatibility with older FSM/BT scripts)
-            Idle,
-            AcquireTarget,
-            Aim,
-            Attack,
-            Cooldown,
-            Evade,
-            Stunned,
-            Dead,
-            // New hybrid FSM states from the updated design
-            ReturnToSpawn,
-            Alert,
-            Pursue,
-            MeleeAttack,
-            RangedAttack
-        }
+        /// <summary> Name of the current state; server only. </summary>
+        public string CurrentStateName => _currentState?.Name ?? string.Empty;
 
         private void Awake()
         {
             _blackboard = GetComponent<AIBlackboard>();
             _characterController = GetComponent<CharacterController>();
-            _healthServer = GetComponent<HealthServer>();
+            _health = GetComponent<NetworkHealth>();
 
-            // Legacy wrapper for the old FSM bridge.  Older scripts expect a "fsm"
-            // object with a ChangeState method that accepts an AIStateId.  We
-            // construct it here so that AIController_FSMBridge.cs can compile
-            // without modification.  See the FsmCompat nested class below.
-            fsm = new FsmCompat(this);
-
-            // Assign config from blackboard if not set explicitly.
+            // Copy config from blackboard if one was not set via inspector.
             if (_config == null && _blackboard.config != null)
             {
                 _config = _blackboard.config;
             }
 
-            // Subscribe to damage events on the server to trigger aggro.
-            _healthServer.OnDamageReceived += OnDamageReceived;
-            _healthServer.OnDeath += OnDeath;
+            // Persist stats to blackboard for debugging.
+            if (_stats == null)
+            {
+                Debug.LogWarning($"{name}: CharacterStats not assigned.  AI will not move or rotate correctly.");
+            }
 
-            // Set initial blackboard values.
+            // Set spawn position on blackboard.
             _blackboard.spawnPosition = transform.position;
 
-            // Initialize the legacy cooldown timer to ready state
-            _legacyAttackCooldownTimer = 0f;
+            // Subscribe to health events on the server.  Do not subscribe on clients.
+            _health.OnDamageReceived += OnDamageReceived;
+            _health.OnDeath += OnDeath;
         }
 
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
-            if (IsServer)
-            {
-                // Set tick intervals based on constants.
-                _aiTickInterval = 1f / ProjectConstants.AI.AITickRate;
-                _btTickInterval = 1f / ProjectConstants.AI.BehaviorTickRate;
-                // Construct state instances on the server. These are lightweight and hold
-                // references back to this controller.
-                _states[nameof(IdleState)] = new IdleState(this);
-                _states[nameof(AlertState)] = new AlertState(this);
-                _states[nameof(PursueState)] = new PursueState(this);
-                _states[nameof(MeleeAttackState)] = new MeleeAttackState(this);
-                _states[nameof(RangedAttackState)] = new RangedAttackState(this);
-                _states[nameof(EvadeState)] = new EvadeState(this);
-                _states[nameof(StunnedState)] = new StunnedState(this);
-                _states[nameof(ReturnToSpawnState)] = new ReturnToSpawnState(this);
-                _states[nameof(DeadState)] = new DeadState(this);
-                // Set initial state to Idle.
-                ChangeState(nameof(IdleState));
-                _initialized = true;
-            }
+            if (!IsServer) return;
+
+            // Configure tick intervals.  Avoid dividing by zero.
+            _aiTickInterval = ProjectConstants.AI.AITickRate > 0 ? 1f / ProjectConstants.AI.AITickRate : 0.1f;
+            _btTickInterval = ProjectConstants.AI.BehaviorTickRate > 0 ? 1f / ProjectConstants.AI.BehaviorTickRate : 0.2f;
+
+            // Create state instances.  Keys match class names for simplicity.
+            _states[nameof(IdleState)] = new IdleState(this);
+            _states[nameof(AlertState)] = new AlertState(this);
+            _states[nameof(PursueState)] = new PursueState(this);
+            _states[nameof(MeleeAttackState)] = new MeleeAttackState(this);
+            _states[nameof(RangedAttackState)] = new RangedAttackState(this);
+            _states[nameof(EvadeState)] = new EvadeState(this);
+            _states[nameof(StunnedState)] = new StunnedState(this);
+            _states[nameof(ReturnToSpawnState)] = new ReturnToSpawnState(this);
+            _states[nameof(DeadState)] = new DeadState(this);
+
+            // Initialize state to Idle.
+            ChangeState(nameof(IdleState));
+            _initialized = true;
+
+            // Initialise the legacy finite state machine.  This wrapper
+            // allows older scripts to request state changes via fsm.
+            fsm = new LegacyFSM(this);
         }
 
         private void Update()
         {
             if (!IsServer || !_initialized) return;
+
             float dt = Time.deltaTime;
-            _aiTickTimer += dt;
-            _btTickTimer += dt;
-            // Behaviour Tree tick at its own interval.
-            if (_btTickTimer >= _btTickInterval)
+            _aiTimer += dt;
+            _btTimer += dt;
+
+            // Reduce the attack cooldown timer for legacy BT nodes.  This
+            // occurs independently of the AI tick interval so that cooldowns
+            // elapse smoothly between state updates.
+            if (_attackCooldownTimer > 0f)
             {
-                _btTickTimer -= _btTickInterval;
+                _attackCooldownTimer -= dt;
+                if (_attackCooldownTimer < 0f) _attackCooldownTimer = 0f;
+            }
+
+            // Run behaviour tree at its own cadence.
+            if (_btTimer >= _btTickInterval)
+            {
+                _btTimer -= _btTickInterval;
                 _behaviorTree?.Tick(_btTickInterval);
             }
-            // AI state tick at its own interval.
-            if (_aiTickTimer >= _aiTickInterval)
-            {
-                float step = _aiTickTimer;
-                _aiTickTimer = 0f;
-                _currentState?.Tick(step);
-            }
 
-            // Update legacy attack cooldown timer.  Legacy scripts call
-            // OffCooldown() to check this value; decrement it each frame on the
-            // server to ensure proper timing.
-            if (_legacyAttackCooldownTimer > 0f)
+            // Run the current state at its own cadence.
+            if (_aiTimer >= _aiTickInterval)
             {
-                _legacyAttackCooldownTimer -= dt;
+                float step = _aiTimer;
+                _aiTimer = 0f;
+                _currentState?.Tick(step);
+                // Update time since last successful hit.
+                _blackboard.timeSinceLastSuccessfulHit += step;
             }
         }
 
         /// <summary>
-        /// Switches the current state to the given name if it exists. Handles exit and
-        /// entry calls appropriately.
+        /// Changes the current state to the given state name.  If the state
+        /// does not exist in the dictionary, a warning is logged.
         /// </summary>
-        /// <param name="stateName">Name of the state to switch to.</param>
         public void ChangeState(string stateName)
         {
-            if (!_states.TryGetValue(stateName, out AIState next))
+            if (_currentState != null && _currentState.Name == stateName)
             {
-                Debug.LogError($"AIController: Unknown state '{stateName}'.");
-                return;
+                return; // Already in this state.
             }
-            if (_currentState == next) return;
-            _currentState?.Exit();
-            _currentState = next;
-            _currentState.Enter();
-            // Optionally update debug indicators here (e.g. colour changes).
+            if (_states.TryGetValue(stateName, out var newState))
+            {
+                _currentState?.Exit();
+                _currentState = newState;
+                _currentState.Enter();
+            }
+            else
+            {
+                Debug.LogWarning($"{name}: Attempted to change to unknown state '{stateName}'.");
+            }
         }
 
         /// <summary>
-        /// Called by HealthServer when this AI takes damage. If not already aggroed, this
-        /// sets up the blackboard target and transitions to the Alert state.
+        /// Called when the AI takes damage.  Assigns the attacker as the
+        /// current target and enters the alert state if idle.  Executed on
+        /// server only.
         /// </summary>
-        /// <param name="attackerId">NetworkObjectId of the attacker.</param>
-        private void OnDamageReceived(ulong attackerId)
+        private void OnDamageReceived(int amount, ulong attackerId)
         {
             if (!IsServer) return;
+            // Record the time of the last hit.
             _blackboard.lastHitTimestamp = Time.time;
             _blackboard.timeSinceLastSuccessfulHit = 0f;
+            // Mark as aggroed and set target.
             _blackboard.aggroed = true;
             _blackboard.targetId = attackerId;
-            // If currently idle or returning, enter alerted state.
-            if (_currentState is IdleState or ReturnToSpawnState)
+            // Attempt to remember the last known position of the attacker.
+            NetworkObject targetObj = NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(attackerId)
+                ? NetworkManager.Singleton.SpawnManager.SpawnedObjects[attackerId]
+                : null;
+            if (targetObj != null)
+            {
+                _blackboard.lastKnownTargetPos = targetObj.transform.position;
+            }
+            // If currently idle or returning to spawn, transition to alert.
+            if (_currentState is IdleState || _currentState is ReturnToSpawnState)
             {
                 ChangeState(nameof(AlertState));
             }
         }
 
         /// <summary>
-        /// Called by HealthServer when health reaches zero. Switch to Dead state.
+        /// Called when the AI's attack hits a valid target.  Resets the
+        /// timeSinceLastSuccessfulHit counter.  Executed on server only.
+        /// </summary>
+        public void OnSuccessfulHit()
+        {
+            if (!IsServer) return;
+            _blackboard.timeSinceLastSuccessfulHit = 0f;
+        }
+
+        /// <summary>
+        /// Called when the AI's attack fails to hit a valid target.  No
+        /// default behaviour; states may override to perform evasive actions.
+        /// </summary>
+        public void OnFailedHit()
+        {
+            // Intentionally left blank.  States may choose to override.
+        }
+
+        /// <summary>
+        /// Called when this AI's health reaches zero.  Transitions to the
+        /// DeadState.  Executed on server only.
         /// </summary>
         private void OnDeath()
         {
@@ -219,335 +246,98 @@ namespace MemeArena.AI
             ChangeState(nameof(DeadState));
         }
 
-        #region Helper Methods for states
-
-        public NetworkObject FindTargetNetworkObject()
+        #region Movement Helpers
+        /// <summary>
+        /// Moves the AI forward along the provided direction at the speed
+        /// defined in the CharacterStats.  This method ignores vertical
+        /// movement; the CharacterController handles gravity internally if a
+        /// collider is present on the environment.  Should only be called on
+        /// the server.
+        /// </summary>
+        public void Move(Vector3 direction, float dt)
         {
-            if (_blackboard.targetId == 0) return null;
-            // Use NetworkManager to find the NetworkObject by id.
-            if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(_blackboard.targetId, out NetworkObject obj))
+            if (!IsServer || _stats == null) return;
+            Vector3 flatDir = new Vector3(direction.x, 0f, direction.z);
+            if (flatDir.sqrMagnitude > 1e-5f)
             {
-                return obj;
-            }
-            return null;
-        }
-
-        public bool IsTargetAlive()
-        {
-            NetworkObject target = FindTargetNetworkObject();
-            return target != null && target.IsSpawned;
-        }
-
-        public void MoveTowards(Vector3 destination, float speed)
-        {
-            Vector3 direction = destination - transform.position;
-            direction.y = 0f;
-            float distance = direction.magnitude;
-            if (distance < 0.01f) return;
-            Vector3 move = direction.normalized * speed;
-            _characterController.Move(move * _aiTickInterval);
-            // Rotate to face movement direction.
-            if (move != Vector3.zero)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(move.normalized);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, _blackboard.stats.rotationSpeed * _aiTickInterval);
+                flatDir.Normalize();
+                _characterController.Move(flatDir * _stats.moveSpeed * dt);
             }
         }
 
-        public void StopMovement()
+        /// <summary>
+        /// Rotates the AI to face the given world position.  Rotation is
+        /// performed gradually based on CharacterStats.rotationSpeed.  Should
+        /// only be called on the server.
+        /// </summary>
+        public void FaceTowards(Vector3 position, float dt)
         {
-            // CharacterController.Move with zero will have no effect; this method exists for clarity.
+            if (!IsServer || _stats == null) return;
+            Vector3 dir = new Vector3(position.x - transform.position.x, 0f, position.z - transform.position.z);
+            if (dir.sqrMagnitude < 1e-5f) return;
+            dir.Normalize();
+            Quaternion targetRot = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, _stats.rotationSpeed * dt);
         }
-
         #endregion
 
-        #region Legacy FSM/BT compatibility methods
-
-        // Some of the older FSM and behaviour tree scripts (e.g. AcquireTargetState,
-        // AimState, AttackState, CooldownState and various BT nodes) expect the
-        // AIController to expose certain methods.  The following wrappers bridge
-        // those legacy expectations to the new deterministic AI implementation.
-
+        #region Attack Helpers
         /// <summary>
-        /// Returns true if the attack cooldown has finished.  Legacy scripts call
-        /// this to decide when the AI is ready to fire another projectile or
-        /// perform another melee attack.  This uses an internal timer that
-        /// counts down in Update().
+        /// Performs a melee attack by checking for NetworkHealth components
+        /// within melee range and applying damage.  Only damages targets on
+        /// opposing teams.  Returns true if at least one valid hit occurred.
         /// </summary>
-        public bool OffCooldown()
+        public bool PerformMeleeAttack()
         {
-            return _legacyAttackCooldownTimer <= 0f;
-        }
-
-        /// <summary>
-        /// Starts the attack cooldown timer.  Call this after firing an attack.
-        /// The duration is taken from the AIConfig if available; otherwise
-        /// defaults to one second.
-        /// </summary>
-        public void StartCooldown()
-        {
-            float cd = 1f;
-            if (_config != null)
+            if (!IsServer || _stats == null) return false;
+            bool hit = false;
+            float range = _config != null ? _config.meleeRange : 2f;
+            Collider[] results = Physics.OverlapSphere(transform.position, range);
+            foreach (var col in results)
             {
-                cd = _config.attackCooldown;
+                if (col.gameObject == gameObject) continue;
+                NetworkHealth targetHealth = col.GetComponent<NetworkHealth>();
+                TeamId targetTeam = col.GetComponent<TeamId>();
+                TeamId myTeam = GetComponent<TeamId>();
+                if (targetHealth != null && targetTeam != null && myTeam != null && targetTeam.team != myTeam.team)
+                {
+                    targetHealth.TakeDamageServerRpc(10, OwnerClientId);
+                    hit = true;
+                }
             }
-            _legacyAttackCooldownTimer = cd;
+            if (hit) OnSuccessfulHit();
+            else OnFailedHit();
+            return hit;
         }
 
         /// <summary>
-        /// Fire a ranged attack.  Legacy scripts call this method to spawn a
-        /// projectile.  This simply delegates to PerformRangedAttack().
+        /// Spawns a projectile and sets its initial velocity in the forward
+        /// direction of the muzzle.  Only executed on the server.  Returns
+        /// true if the projectile was successfully spawned.
         /// </summary>
-        public void Fire()
+        public bool PerformRangedAttack()
         {
-            PerformRangedAttack();
-        }
-
-        /// <summary>
-        /// Moves the AI in a deterministic manner given a direction and delta time.
-        /// Older scripts call this to move in a straight line independent of the
-        /// physics system.  The speed is taken from the character stats if
-        /// available; otherwise uses 2 m/s.
-        /// </summary>
-        public void MoveDeterministic(Vector3 direction, float deltaTime)
-        {
-            if (direction.sqrMagnitude < Mathf.Epsilon) return;
-            float speed = (_blackboard.stats != null) ? _blackboard.stats.moveSpeed : 2f;
-            Vector3 move = direction.normalized * speed * deltaTime;
-            _characterController.Move(move);
-            // Rotate to face the movement direction
-            Quaternion targetRot = Quaternion.LookRotation(direction.normalized);
-            float rotSpeed = (_blackboard.stats != null) ? _blackboard.stats.rotationSpeed : 360f;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotSpeed * deltaTime);
-        }
-
-        /// <summary>
-        /// Returns the Transform of the current target if one exists.  Used by
-        /// legacy Aim/Attack states to orient towards the target.  If no target
-        /// exists the return value is null.
-        /// </summary>
-        public Transform TargetTransform()
-        {
-            NetworkObject target = FindTargetNetworkObject();
-            return target != null ? target.transform : null;
-        }
-
-        /// <summary>
-        /// Rotates the AI to face a world position.  Used by legacy Aim states.
-        /// </summary>
-        public void FaceToward(Vector3 worldPosition, float deltaTime)
-        {
-            Vector3 dir = worldPosition - transform.position;
-            dir.y = 0f;
-            if (dir.sqrMagnitude < Mathf.Epsilon) return;
-            Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
-            float rotSpeed = (_blackboard.stats != null) ? _blackboard.stats.rotationSpeed : 360f;
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotSpeed * deltaTime);
-        }
-
-        /// <summary>
-        /// Determines whether the specified target is within attack range.  Uses the
-        /// rangedRange from AIConfig if present; otherwise defaults to 10 meters.
-        /// </summary>
-        public bool InAttackRange(Transform t)
-        {
-            if (t == null) return false;
-            float range = 10f;
-            if (_config != null)
+            if (!IsServer || projectilePrefab == null || muzzle == null) return false;
+            GameObject go = Instantiate(projectilePrefab, muzzle.position, muzzle.rotation);
+            NetworkObject no = go.GetComponent<NetworkObject>();
+            ProjectileServer proj = go.GetComponent<ProjectileServer>();
+            if (no == null || proj == null)
             {
-                range = _config.rangedRange;
+                Debug.LogWarning($"{name}: Projectile prefab missing NetworkObject or ProjectileServer.");
+                Destroy(go);
+                return false;
             }
-            return Vector3.Distance(transform.position, t.position) <= range;
-        }
-
-        /// <summary>
-        /// Returns true if the AI currently has a target assigned on the blackboard.
-        /// </summary>
-        public bool HasTarget()
-        {
-            return _blackboard.targetId != 0;
-        }
-
-        #endregion
-
-        #region Legacy FSM bridge
-
-        /// <summary>
-        /// A simple wrapper that exposes a ChangeState method for legacy FSM bridges.
-        /// Older scripts reference a "fsm" property on AIController to change
-        /// states by enum identifier.  This wrapper calls through to
-        /// AIController.ChangeState(AIStateId).
-        /// </summary>
-        private class FsmCompat
-        {
-            private readonly AIController _owner;
-            public FsmCompat(AIController owner) { _owner = owner; }
-            public void ChangeState(AIStateId id)
+            // Set owner and team on the projectile.
+            proj.ownerClientId = OwnerClientId;
+            TeamId myTeam = GetComponent<TeamId>();
+            if (myTeam != null)
             {
-                _owner.ChangeState(id);
+                proj.ownerTeam = myTeam.team;
             }
+            no.Spawn(true);
+            proj.Launch();
+            return true;
         }
-
-        // This field is used by AIController_FSMBridge.cs.  Do not remove.
-        private FsmCompat fsm;
-
-        /// <summary>
-        /// Change state via enum identifier.  Legacy wrappers use this to map
-        /// older state names onto the new FSM implementation.  You can modify
-        /// the mapping logic here to fine tune how legacy states are routed.
-        /// </summary>
-        /// <param name="stateId">The legacy state identifier.</param>
-        public void ChangeState(AIStateId stateId)
-        {
-            // Map legacy state identifiers to the new state class names.  If a
-            // mapping is not defined explicitly, fall back to IdleState.
-            switch (stateId)
-            {
-                case AIStateId.Idle:
-                    ChangeState(nameof(IdleState));
-                    break;
-                case AIStateId.AcquireTarget:
-                    // AcquireTarget roughly corresponds to becoming alert/pursuing.
-                    ChangeState(nameof(AlertState));
-                    break;
-                case AIStateId.Aim:
-                    // Aim maps to pursuing the target while facing it.
-                    ChangeState(nameof(PursueState));
-                    break;
-                case AIStateId.Attack:
-                    // Attack triggers a ranged attack by default.
-                    ChangeState(nameof(RangedAttackState));
-                    break;
-                case AIStateId.Cooldown:
-                    // After a legacy cooldown, resume pursuing.
-                    ChangeState(nameof(PursueState));
-                    break;
-                case AIStateId.Evade:
-                    ChangeState(nameof(EvadeState));
-                    break;
-                case AIStateId.Stunned:
-                    ChangeState(nameof(StunnedState));
-                    break;
-                case AIStateId.Dead:
-                    ChangeState(nameof(DeadState));
-                    break;
-                case AIStateId.ReturnToSpawn:
-                    ChangeState(nameof(ReturnToSpawnState));
-                    break;
-                case AIStateId.Alert:
-                    ChangeState(nameof(AlertState));
-                    break;
-                case AIStateId.Pursue:
-                    ChangeState(nameof(PursueState));
-                    break;
-                case AIStateId.MeleeAttack:
-                    ChangeState(nameof(MeleeAttackState));
-                    break;
-                case AIStateId.RangedAttack:
-                    ChangeState(nameof(RangedAttackState));
-                    break;
-                default:
-                    ChangeState(nameof(IdleState));
-                    break;
-            }
-        }
-
-        #endregion
-
-        /// <summary>
-        /// Performs a melee attack on the current target. This method is called by
-        /// MeleeAttackState. It looks up the target's HealthServer and applies damage.
-        /// </summary>
-        public void PerformMeleeAttack()
-        {
-            NetworkObject target = FindTargetNetworkObject();
-            if (target == null) return;
-            HealthServer targetHealth = target.GetComponent<HealthServer>();
-            if (targetHealth != null)
-            {
-                // Apply immediate damage. The amount could be read from config/stats.
-                targetHealth.ApplyDamageServerRpc(10, NetworkObjectId);
-                // Reset counters.
-                _blackboard.timeSinceLastSuccessfulHit = 0f;
-                _blackboard.failedHitCounter = 0;
-            }
-        }
-
-        /// <summary>
-        /// Performs a ranged attack on the current target. Spawns a projectile prefab
-        /// server-side that travels towards the target. The projectile behaviour is
-        /// defined in ProjectileServer.
-        /// </summary>
-        public void PerformRangedAttack()
-        {
-            NetworkObject target = FindTargetNetworkObject();
-            if (target == null) return;
-            // Attempt to spawn a projectile at a spawn point on the AI (e.g. muzzle).
-            // Here we assume a child transform named "Muzzle" exists. If not, use current
-            // position offset.
-            Transform muzzle = transform;
-            if (transform.childCount > 0)
-            {
-                Transform found = transform.Find("Muzzle");
-                if (found != null) muzzle = found;
-            }
-            Vector3 spawnPos = muzzle.position;
-            Quaternion spawnRot = Quaternion.LookRotation((target.transform.position - spawnPos).normalized);
-            if (!IsServer) return;
-            // Only spawn on the server. Compute direction and invoke RPC for proper network ownership.
-            Vector3 dir = (target.transform.position - spawnPos).normalized;
-            NetworkSpawnProjectileServerRpc(spawnPos, dir);
-        }
-
-        #region RPCs
-
-        /// <summary>
-        /// Server RPC to spawn a projectile. The actual instantiation logic lives server-side
-        /// inside this method. Called by PerformRangedAttack.
-        /// </summary>
-        [ServerRpc]
-        private void NetworkSpawnProjectileServerRpc(Vector3 spawnPosition, Vector3 direction)
-        {
-            if (!IsServer) return;
-            if (projectilePrefab == null)
-            {
-                Debug.LogWarning($"AIController on {gameObject.name} has no projectilePrefab assigned.");
-                return;
-            }
-            GameObject proj = Instantiate(projectilePrefab, spawnPosition, Quaternion.LookRotation(direction));
-            var netObj = proj.GetComponent<NetworkObject>();
-            if (netObj != null)
-            {
-                netObj.Spawn();
-            }
-            var projectile = proj.GetComponent<MemeArena.Combat.ProjectileServer>();
-            if (projectile != null)
-            {
-                projectile.Init(direction, NetworkObjectId);
-            }
-        }
-
-        /// <summary>
-        /// Called when the component is destroyed. Override to unsubscribe from events and
-        /// invoke the base class implementation. Without this override the same method
-        /// signature in another partial class would hide the NetworkBehaviour version and
-        /// generate a warning.
-        /// </summary>
-        /// <summary>
-        /// Override OnDestroy to unsubscribe from health events and call the base
-        /// implementation. This method must be public to match the access level of the
-        /// inherited NetworkBehaviour.OnDestroy.
-        /// </summary>
-        public override void OnDestroy()
-        {
-            if (_healthServer != null)
-            {
-                _healthServer.OnDamageReceived -= OnDamageReceived;
-                _healthServer.OnDeath -= OnDeath;
-            }
-            base.OnDestroy();
-        }
-
         #endregion
     }
 }

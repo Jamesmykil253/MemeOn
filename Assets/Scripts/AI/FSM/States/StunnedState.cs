@@ -1,32 +1,32 @@
 using UnityEngine;
+using Unity.Netcode;
 
 namespace MemeArena.AI
 {
     /// <summary>
-    /// StunnedState incapacitates the AI for a brief period. After the stun ends, the
-    /// AI resumes pursuing its target. The stun duration can be configured on the
-    /// blackboard or via config if needed.
+    /// Temporarily incapacitates the AI.  Used for crowd control effects.
+    /// During this state the AI neither moves nor rotates.  After the
+    /// stunned duration the AI either resumes pursuing its target or returns
+    /// home if no target exists.
     /// </summary>
     public class StunnedState : AIState
     {
-        private float _stunTimer = 1f;
+        private float _stunTimer;
 
-        public StunnedState(AIController controller) : base(controller) { }
+        public StunnedState(AIController controller) : base(controller, nameof(StunnedState)) { }
 
         public override void Enter()
         {
-            base.Enter();
-            _stunTimer = 1f; // default stun duration; could be configured per attack.
-            controller.StopMovement();
+            _stunTimer = controller.Config.stunnedDuration;
         }
 
-        public override void Tick(float deltaTime)
+        public override void Tick(float dt)
         {
-            _stunTimer -= deltaTime;
+            _stunTimer -= dt;
             if (_stunTimer <= 0f)
             {
-                // After stun, pursue if a target exists; otherwise return home.
-                if (controller.IsTargetAlive())
+                var bb = controller.Blackboard;
+                if (bb.aggroed && bb.targetId != 0)
                 {
                     controller.ChangeState(nameof(PursueState));
                 }

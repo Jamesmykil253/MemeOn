@@ -1,44 +1,49 @@
 using UnityEngine;
+using Unity.Netcode;
 
 namespace MemeArena.AI
 {
     /// <summary>
-    /// EvadeState briefly moves the AI away from its target to create spacing. After
-    /// completing the evade manoeuvre the AI returns to pursuing the target. Evade
-    /// direction is computed as the opposite of the target's direction with a slight
-    /// sideways offset for unpredictability.
+    /// Moves the AI away from its target for a short duration.  Used when
+    /// attacks repeatedly fail or to avoid cluster collisions.  After the
+    /// timer expires the AI returns to the pursue state.
     /// </summary>
     public class EvadeState : AIState
     {
         private float _evadeTimer;
-        private Vector3 _evadeTargetPosition;
+        private Vector3 _moveDir;
 
-        public EvadeState(AIController controller) : base(controller) { }
+        public EvadeState(AIController controller) : base(controller, nameof(EvadeState)) { }
 
         public override void Enter()
         {
-            base.Enter();
             _evadeTimer = controller.Config.evadeDuration;
-            // Determine a point to move to. Move opposite the direction to the target plus a lateral random.
-            var targetObj = controller.FindTargetNetworkObject();
-            Vector3 direction = Vector3.zero;
-            if (targetObj != null)
+            // Compute a direction opposite to the target.  If no target use a
+            // random direction.
+            var bb = controller.Blackboard;
+            Vector3 away;
+            if (bb.targetId != 0 && NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(bb.targetId))
             {
-                direction = (controller.transform.position - targetObj.transform.position).normalized;
+                Vector3 toTarget = NetworkManager.Singleton.SpawnManager.SpawnedObjects[bb.targetId].transform.position - controller.transform.position;
+                away = -toTarget.normalized;
             }
-            // Add a lateral component.
-            Vector3 right = Vector3.Cross(direction, Vector3.up);
-            float lateralSign = Random.value > 0.5f ? 1f : -1f;
-            direction = (direction + right * 0.5f * lateralSign).normalized;
-            _evadeTargetPosition = controller.transform.position + direction * controller.Config.evadeDistance;
+            else
+            {
+                away = Random.onUnitSphere;
+                away.y = 0f;
+                away.Normalize();
+            }
+            // Choose a perpendicular lateral offset to avoid linear retreat.
+            Vector3 lateral = Vector3.Cross(away, Vector3.up);
+            if (Random.value > 0.5f) lateral = -lateral;
+            _moveDir = (away + 0.3f * lateral).normalized;
         }
 
-        public override void Tick(float deltaTime)
+        public override void Tick(float dt)
         {
-            _evadeTimer -= deltaTime;
-            // Move away until timer expires.
-            float speed = blackboard.stats != null ? blackboard.stats.moveSpeed : 2f;
-            controller.MoveTowards(_evadeTargetPosition, speed * 1.5f);
+            _evadeTimer -= dt;
+            // Move each frame; do not rotate toward movement to emphasize panic.
+            controller.Move(_moveDir, dt);
             if (_evadeTimer <= 0f)
             {
                 controller.ChangeState(nameof(PursueState));

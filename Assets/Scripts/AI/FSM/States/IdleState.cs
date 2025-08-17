@@ -3,26 +3,21 @@ using UnityEngine;
 namespace MemeArena.AI
 {
     /// <summary>
-    /// The Idle state represents the default behaviour when the AI is not engaged.
-    /// It does not perform any movement or attacks. Damage events will trigger a
-    /// transition into the Alert state via AIController.
+    /// IdleState represents the baseline behaviour of the AI.  While idle the
+    /// AI does nothing until provoked.  On entry, it resets aggro and clears
+    /// target information on the blackboard.  It does not transition on its
+    /// own; transitions occur via events such as OnDamageReceived.
     /// </summary>
     public class IdleState : AIState
     {
-        public IdleState(AIController controller) : base(controller) { }
+        public IdleState(AIController controller) : base(controller, nameof(IdleState)) { }
 
         public override void Enter()
         {
-            base.Enter();
-            // Reset counters and ensure the AI returns to its spawn position when idling.
-            blackboard.ResetBlackboard();
-            // Align with spawn rotation if necessary.
-            controller.StopMovement();
-        }
-
-        public override void Tick(float deltaTime)
-        {
-            // Idle behaviour does nothing unless external events occur.
+            var bb = controller.Blackboard;
+            bb.aggroed = false;
+            bb.targetId = 0;
+            bb.timeSinceLastSuccessfulHit = 0f;
         }
     }
 }

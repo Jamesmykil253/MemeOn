@@ -1,70 +1,67 @@
 using UnityEngine;
+using Unity.Netcode;
 
 namespace MemeArena.AI
 {
     /// <summary>
-    /// PursueState drives the AI towards its current target. If the target comes within
-    /// melee or ranged range, transitions to the appropriate attack state. If the AI
-    /// strays too far from its spawn or fails to land hits for long enough, it
-    /// transitions to ReturnToSpawn.
+    /// PursueState handles chasing the current target.  The AI continues to
+    /// pursue until the target is lost (dead or out of range) or until the
+    /// giveUpTimeout or maxPursueRadius conditions are met.  When within
+    /// melee or ranged range the state transitions to MeleeAttackState or
+    /// RangedAttackState accordingly.
     /// </summary>
     public class PursueState : AIState
     {
-        public PursueState(AIController controller) : base(controller) { }
+        public PursueState(AIController controller) : base(controller, nameof(PursueState)) { }
 
-        public override void Enter()
+        public override void Tick(float dt)
         {
-            base.Enter();
-        }
-
-        public override void Tick(float deltaTime)
-        {
-            // If there is no target or the target died, return home.
-            if (!controller.IsTargetAlive())
+            var bb = controller.Blackboard;
+            // If no target or not aggroed, return to spawn.
+            if (!bb.aggroed || bb.targetId == 0)
             {
                 controller.ChangeState(nameof(ReturnToSpawnState));
                 return;
             }
-
-            // Update timers on blackboard.
-            blackboard.timeSinceLastSuccessfulHit += deltaTime;
-
-            // Grab target and distance.
-            var targetObj = controller.FindTargetNetworkObject();
-            if (targetObj == null)
+            // Lookup the target network object.
+            if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(bb.targetId))
             {
                 controller.ChangeState(nameof(ReturnToSpawnState));
                 return;
             }
-            Vector3 targetPos = targetObj.transform.position;
-            blackboard.lastKnownTargetPos = targetPos;
-
-            float distanceToTarget = Vector3.Distance(controller.transform.position, targetPos);
-
-            // If too far from spawn or gave up chasing, return to spawn.
-            float distanceFromSpawn = Vector3.Distance(controller.transform.position, blackboard.spawnPosition);
-            if (distanceFromSpawn > controller.Config.maxPursueRadius ||
-                blackboard.timeSinceLastSuccessfulHit >= controller.Config.giveUpTimeout)
+            var targetObj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[bb.targetId].gameObject;
+            // Check if target has health and is alive.
+            var targetHealth = targetObj.GetComponent<Combat.NetworkHealth>();
+            if (targetHealth == null || targetHealth.GetCurrentHealth() <= 0)
             {
                 controller.ChangeState(nameof(ReturnToSpawnState));
                 return;
             }
-
-            // Decide on attack state.
-            if (distanceToTarget <= controller.Config.meleeRange)
+            // Compute distance.
+            Vector3 toTarget = targetObj.transform.position - controller.transform.position;
+            float distance = toTarget.magnitude;
+            // Update last known position for fallback.
+            bb.lastKnownTargetPos = targetObj.transform.position;
+            // Give up if too far or no hits for too long.
+            if (distance > controller.Config.maxPursueRadius || bb.timeSinceLastSuccessfulHit >= controller.Config.giveUpTimeout)
+            {
+                controller.ChangeState(nameof(ReturnToSpawnState));
+                return;
+            }
+            // Transition to melee or ranged states.
+            if (distance <= controller.Config.meleeRange)
             {
                 controller.ChangeState(nameof(MeleeAttackState));
                 return;
             }
-            else if (distanceToTarget <= controller.Config.rangedRange)
+            else if (distance <= controller.Config.rangedRange)
             {
                 controller.ChangeState(nameof(RangedAttackState));
                 return;
             }
-
-            // Otherwise continue pursuing.
-            float speed = blackboard.stats != null ? blackboard.stats.moveSpeed : 2f;
-            controller.MoveTowards(targetPos, speed);
+            // Otherwise move toward the target and face it.
+            controller.FaceTowards(targetObj.transform.position, dt);
+            controller.Move(toTarget, dt);
         }
     }
 }

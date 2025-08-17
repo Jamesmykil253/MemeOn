@@ -3,24 +3,23 @@ using UnityEngine;
 namespace MemeArena.AI
 {
     /// <summary>
-    /// Defines generic character statistics that can be reused across players and AI. These
-    /// stats are meant for initial prototypes; later systems may derive runtime values
-    /// from progression or equipment. Designers should assign this asset on prefabs.
+    /// CharacterStats defines baseline movement and health values for an AI
+    /// entity.  These values are independent of AI-specific parameters and can
+    /// be reused by player controlled characters.  Use ScriptableObjects to
+    /// share the same stats across multiple prefabs without duplication.
     /// </summary>
-    [CreateAssetMenu(menuName = "MemeArena/Character Stats", fileName = "CharacterStats")]
+    [CreateAssetMenu(fileName = "CharacterStats", menuName = "MemeArena/Character Stats", order = 0)]
     public class CharacterStats : ScriptableObject
     {
         [Header("Health")]
+        [Tooltip("Maximum health for this character.")]
         public int maxHealth = 100;
 
         [Header("Movement")]
-        [Tooltip("Movement speed in meters per second.")]
-        public float moveSpeed = 3f;
-        [Tooltip("Rotation speed in degrees per second.")]
-        public float rotationSpeed = 720f;
+        [Tooltip("Forward movement speed in units per second.")]
+        public float moveSpeed = 5f;
 
-        [Header("Team")]
-        [Tooltip("Team identifier (0 for neutral, positive values for teams).")]
-        public int teamId = 0;
+        [Tooltip("Angular turning speed in degrees per second.")]
+        public float rotationSpeed = 720f;
     }
 }

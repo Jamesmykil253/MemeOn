@@ -1,41 +1,34 @@
-using UnityEngine;
-
 namespace MemeArena.AI
 {
     /// <summary>
-    /// Base class for all AI finite state machine states. Each state implements its own
-    /// logic for entering, ticking, and exiting. States can request transitions via
-    /// the AIController. Subclasses should be simple and deterministic.
+    /// Base class for finite state machine states.  Each state owns a
+    /// reference to the AIController and can override lifecycle methods.
+    /// Concrete states should call controller.ChangeState to transition
+    /// between states.  Tick is called at a fixed rate defined by
+    /// ProjectConstants.AI.AITickRate.
     /// </summary>
     public abstract class AIState
     {
-        protected readonly AIController controller;
-        protected readonly AIBlackboard blackboard;
+        /// <summary> Name of this state.  Used for lookup and debugging. </summary>
+        public readonly string Name;
 
-        protected AIState(AIController controller)
+        protected readonly AIController controller;
+
+        protected AIState(AIController controller, string name)
         {
             this.controller = controller;
-            this.blackboard = controller.Blackboard;
+            Name = name;
         }
 
-        /// <summary>
-        /// Called when the state becomes active. Override to setup internal variables.
-        /// </summary>
+        /// <summary> Called when entering this state. </summary>
         public virtual void Enter() { }
 
-        /// <summary>
-        /// Called every AI tick. deltaTime is the time in seconds since the last tick.
-        /// </summary>
-        public virtual void Tick(float deltaTime) { }
+        /// <summary> Called once per AI tick while this state is active. </summary>
+        /// <param name="dt">The time in seconds since the last tick.  Use
+        /// this value to scale movement and timers.</param>
+        public virtual void Tick(float dt) { }
 
-        /// <summary>
-        /// Called when leaving the state. Override to clean up.
-        /// </summary>
+        /// <summary> Called when exiting this state. </summary>
         public virtual void Exit() { }
-
-        /// <summary>
-        /// Gets the friendly name of the state for debugging.
-        /// </summary>
-        public virtual string Name => GetType().Name;
     }
 }
