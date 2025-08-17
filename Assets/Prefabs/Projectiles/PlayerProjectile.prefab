@@ -121,7 +121,6 @@ GameObject:
   - component: {fileID: 5297182607618817009}
   - component: {fileID: 8792542478293129976}
   - component: {fileID: 4656097928787645236}
-  - component: {fileID: 9048812887399216176}
   - component: {fileID: 5627272715748647996}
   m_Layer: 9
   m_Name: PlayerProjectile
@@ -186,38 +185,10 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   speed: 12
   lifeSeconds: 3
-  maxDistance: 30
   damage: 10
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 128
---- !u!54 &9048812887399216176
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8242624005166438942}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 1
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
+  ownerClientId: 0
+  ownerObjectId: 0
+  ownerTeam: 0
 --- !u!135 &5627272715748647996
 SphereCollider:
   m_ObjectHideFlags: 0

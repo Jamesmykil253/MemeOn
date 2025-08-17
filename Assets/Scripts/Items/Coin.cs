@@ -26,7 +26,8 @@ namespace MemeArena.Items
         {
             if (!IsServer) return;
 
-            var inv = other.GetComponentInParent<PlayerInventory>();
+            // Explicitly use Players.PlayerInventory to avoid resolving to Items.PlayerInventory
+            var inv = other.GetComponentInParent<MemeArena.Players.PlayerInventory>();
             if (inv != null && other.CompareTag("Player"))
             {
                 inv.AddCoins(1);

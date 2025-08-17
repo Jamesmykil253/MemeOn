@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae144fb0a52504940a94f90866ff5db9, type: 3}
   m_Name: CharacterStatsEnemy1
   m_EditorClassIdentifier: 
-  maxHealth: 100
-  moveSpeed: 5
+  maxHealth: 70
+  moveSpeed: 3
   rotationSpeed: 720

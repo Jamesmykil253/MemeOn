@@ -23,4 +23,4 @@ MonoBehaviour:
   stunnedDuration: 1
   reactionDelayMean: 0.5
   reactionDelayStdDev: 0.1
-  respawnDelay: 3
+  respawnDelay: 5

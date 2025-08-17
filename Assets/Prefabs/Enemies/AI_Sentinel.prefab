@@ -11,15 +11,14 @@ GameObject:
   - component: {fileID: 8540349249150279831}
   - component: {fileID: 2114306123732695506}
   - component: {fileID: 1616949245026953145}
+  - component: {fileID: 8728064199307395441}
+  - component: {fileID: 604985567237015692}
+  - component: {fileID: 2839988318425290788}
   - component: {fileID: 750422631240178145}
   - component: {fileID: 6243120618710830708}
-  - component: {fileID: 8728064199307395441}
-  - component: {fileID: 2839988318425290788}
-  - component: {fileID: 604985567237015692}
   - component: {fileID: 3181479697713699956}
   - component: {fileID: 1112101952136533399}
   - component: {fileID: 3877557719241085013}
-  - component: {fileID: 5142800053409430414}
   - component: {fileID: 8416837665778569730}
   - component: {fileID: 7682907366748011513}
   - component: {fileID: 3143949475707213328}
@@ -101,37 +100,6 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &750422631240178145
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b68fa29bef604e8d94201b674115fee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  Health:
-    m_InternalValue: 0
---- !u!114 &6243120618710830708
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ba605c72bf5c40baa4c5c24acc98fe8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  TeamIndex:
-    m_InternalValue: 0
 --- !u!114 &8728064199307395441
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -151,6 +119,20 @@ MonoBehaviour:
   lastHitTimestamp: 0
   timeSinceLastSuccessfulHit: 0
   lastKnownTargetPos: {x: 0, y: 0, z: 0}
+--- !u!114 &604985567237015692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58e6b505182264026a74333c8bc1203e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
 --- !u!114 &2839988318425290788
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -168,7 +150,7 @@ MonoBehaviour:
   _stats: {fileID: 11400000, guid: c95e4f1bee2784eaba436e157f757605, type: 2}
   projectilePrefab: {fileID: 8242624005166438942, guid: 7cbf3c1704be44cbbbb969254cf8a19a, type: 3}
   muzzle: {fileID: 6456440799871461692}
---- !u!114 &604985567237015692
+--- !u!114 &750422631240178145
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -177,11 +159,28 @@ MonoBehaviour:
   m_GameObject: {fileID: 164492423632609151}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 58e6b505182264026a74333c8bc1203e, type: 3}
+  m_Script: {fileID: 11500000, guid: 0b68fa29bef604e8d94201b674115fee, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   maxHealth: 100
+  CurrentHealth:
+    m_InternalValue: 0
+--- !u!114 &6243120618710830708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ba605c72bf5c40baa4c5c24acc98fe8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  TeamIndex:
+    m_InternalValue: 0
 --- !u!114 &3181479697713699956
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -228,25 +227,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &5142800053409430414
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bfe7f46da1d474df3b8a993db2fb970d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  config: {fileID: 0}
-  spawnPosition: {x: 0, y: 0, z: 0}
-  targetId: 0
-  aggroed: 0
-  lastHitTimestamp: 0
-  timeSinceLastSuccessfulHit: 0
-  lastKnownTargetPos: {x: 0, y: 0, z: 0}
 --- !u!195 &8416837665778569730
 NavMeshAgent:
   m_ObjectHideFlags: 0

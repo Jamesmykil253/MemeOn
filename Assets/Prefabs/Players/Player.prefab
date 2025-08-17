@@ -64,11 +64,12 @@ GameObject:
   - component: {fileID: 206975841182195276}
   - component: {fileID: 1296336912210658751}
   - component: {fileID: -2837294982794779125}
-  - component: {fileID: -8750772828443675708}
-  - component: {fileID: 6068574504525434252}
-  - component: {fileID: 2003279826373057906}
+  - component: {fileID: 8076948123935878646}
   - component: {fileID: 7330676258798695526}
-  - component: {fileID: 3614251518305293887}
+  - component: {fileID: 6793057788261664666}
+  - component: {fileID: 6068574504525434252}
+  - component: {fileID: -8750772828443675708}
+  - component: {fileID: 2003279826373057906}
   - component: {fileID: 735739966014345678}
   - component: {fileID: 3257756471342274038}
   - component: {fileID: 1043060004503448355}
@@ -78,7 +79,7 @@ GameObject:
   - component: {fileID: -2382671246328507373}
   m_Layer: 6
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -114,13 +115,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GlobalObjectIdHash: 2238060216
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  InScenePlacedSourceGlobalObjectIdHash: 2238060216
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -151,7 +152,7 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-8750772828443675708
+--- !u!114 &8076948123935878646
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -160,12 +161,44 @@ MonoBehaviour:
   m_GameObject: {fileID: 2170685497171753368}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b68fa29bef604e8d94201b674115fee, type: 3}
+  m_Script: {fileID: 11500000, guid: 4959755c0976c4e8abcee996e214d950, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  Health:
+  moveSpeed: 6
+  rotationSpeedDeg: 720
+  gravity: -25
+  moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  attackAction: {fileID: 1120369429361536294, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+--- !u!114 &7330676258798695526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2170685497171753368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 735c77796d2a6423998ec31a5a555824, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  projectilePrefab: {fileID: 8242624005166438942, guid: 85deb94b61bdb4a229294386692c3fae, type: 3}
+  damage: 10
+--- !u!114 &6793057788261664666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2170685497171753368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 168b0cc6ad24a40dfb2af31b9c4a5f71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  Coins:
     m_InternalValue: 0
 --- !u!114 &6068574504525434252
 MonoBehaviour:
@@ -182,6 +215,22 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   TeamIndex:
     m_InternalValue: 0
+--- !u!114 &-8750772828443675708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2170685497171753368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b68fa29bef604e8d94201b674115fee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
+  CurrentHealth:
+    m_InternalValue: 0
 --- !u!114 &2003279826373057906
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -197,43 +246,6 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   moveSpeed: 7
   rotationSpeed: 720
---- !u!114 &7330676258798695526
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 735c77796d2a6423998ec31a5a555824, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  projectilePrefab: {fileID: 8242624005166438942, guid: 85deb94b61bdb4a229294386692c3fae, type: 3}
-  damage: 10
---- !u!195 &3614251518305293887
-NavMeshAgent:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 0.5
-  m_Speed: 3.5
-  m_Acceleration: 8
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 1
-  m_BaseOffset: 0.5
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
 --- !u!137 &735739966014345678
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 0

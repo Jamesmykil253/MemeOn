@@ -17,8 +17,9 @@ namespace MemeArena.Players
         [Min(0.1f)] public float rotationSpeedDeg = 720f;
         public float gravity = -25f;
 
-        [Header("Input")]
-        public InputActionReference moveAction; // Vector2 action ("Move")
+    [Header("Input")]
+    public InputActionReference moveAction; // Vector2 action ("Move")
+    public InputActionReference attackAction; // Button action ("Attack")
 
         CharacterController _cc;
         Vector3 _serverVelocity;
@@ -36,6 +37,10 @@ namespace MemeArena.Players
             {
                 moveAction.action.Enable();
             }
+            if (IsOwner && attackAction != null)
+            {
+                attackAction.action.Enable();
+            }
         }
 
         void OnDisable()
@@ -44,14 +49,32 @@ namespace MemeArena.Players
             {
                 moveAction.action.Disable();
             }
+            if (IsOwner && attackAction != null)
+            {
+                attackAction.action.Disable();
+            }
         }
 
+        float _fireCooldownTimer;
         void FixedUpdate()
         {
             if (IsOwner)
             {
                 var mv = moveAction != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
                 SubmitInputServerRpc(mv, Time.fixedDeltaTime);
+
+                // Attack input: trigger a server RPC on the combat controller with a small cooldown
+                if (attackAction != null)
+                {
+                    _fireCooldownTimer -= Time.fixedDeltaTime;
+                    bool pressed = attackAction.action.WasPressedThisFrame();
+                    if (pressed && _fireCooldownTimer <= 0f)
+                    {
+                        var combat = GetComponent<PlayerCombatController>();
+                        combat?.FireServerRpc();
+                        _fireCooldownTimer = 0.2f;
+                    }
+                }
             }
 
             if (IsServer)

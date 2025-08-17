@@ -35,8 +35,9 @@ namespace MemeArena.Game
         {
             if (!IsServer) return;
 
-            var inv = other.GetComponentInParent<PlayerInventory>();
-            var health = other.GetComponentInParent<HealthNetwork>();
+            var inv = other.GetComponentInParent<MemeArena.Players.PlayerInventory>();
+            var healthLegacy = other.GetComponentInParent<HealthNetwork>();
+            var healthNet = other.GetComponentInParent<MemeArena.Combat.NetworkHealth>();
             var move = other.GetComponentInParent<MemeArena.Players.PlayerMovement>();
             var tid = other.GetComponentInParent<MemeArena.Network.TeamId>();
             var nob = other.GetComponentInParent<NetworkObject>();
@@ -50,7 +51,9 @@ namespace MemeArena.Game
                 if (isOwnGoal)
                 {
                     // Heal while in own goal
-                    if (health != null) health.Heal(Mathf.CeilToInt(healPerSecond * Time.fixedDeltaTime));
+                    int heal = Mathf.CeilToInt(healPerSecond * Time.fixedDeltaTime);
+                    if (healthNet != null) healthNet.Heal(heal);
+                    else if (healthLegacy != null) healthLegacy.Heal(heal);
 
                     // Start/continue deposit if has coins
                     if (inv.Coins.Value > 0)
@@ -92,7 +95,7 @@ namespace MemeArena.Game
             }
         }
 
-        IEnumerator DepositRoutine(NetworkObject player, PlayerInventory inv)
+    IEnumerator DepositRoutine(NetworkObject player, MemeArena.Players.PlayerInventory inv)
         {
             // Channel time scales with coin count at start of channel
             int coins = Mathf.Max(0, inv.Coins.Value);

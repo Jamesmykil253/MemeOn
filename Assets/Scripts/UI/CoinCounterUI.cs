@@ -1,6 +1,6 @@
 using UnityEngine;
 using TMPro;
-using MemeArena.Items;
+using MemeArena.Players;
 
 namespace MemeArena.UI
 {
@@ -15,7 +15,7 @@ namespace MemeArena.UI
         [SerializeField] private TMP_Text coinText;
 
         [Tooltip("PlayerInventory component to read the coin count from.")]
-        [SerializeField] private PlayerInventory inventory;
+    [SerializeField] private PlayerInventory inventory;
 
         private void Start()
         {
@@ -28,7 +28,7 @@ namespace MemeArena.UI
         private void Update()
         {
             if (coinText == null || inventory == null) return;
-            coinText.text = inventory.CoinCount.ToString();
+            coinText.text = inventory.Coins.Value.ToString();
         }
     }
 }

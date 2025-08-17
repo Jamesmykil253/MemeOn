@@ -15,8 +15,11 @@ namespace MemeArena.CameraSystem
         private void Start()
         {
             // Prefer the local player; otherwise, any player; fallback to any AI
-            var player = FindFirstObjectByType<MemeArena.Players.PlayerController>();
+            var player = FindFirstObjectByType<MemeArena.Players.PlayerController>() as Component;
             if (!player) player = FindAnyObjectByType<MemeArena.Players.PlayerController>();
+            // Fallback to PlayerMovement if PlayerController isn't used
+            if (!player) player = FindFirstObjectByType<MemeArena.Players.PlayerMovement>();
+            if (!player) player = FindAnyObjectByType<MemeArena.Players.PlayerMovement>();
             if (player) { _cam.target = player.transform; return; }
 
             var enemyAI = FindFirstObjectByType<MemeArena.AI.AIController>();
