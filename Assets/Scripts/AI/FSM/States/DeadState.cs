@@ -21,7 +21,7 @@ namespace MemeArena.AI
             if (_notified) return;
             _notified = true;
             // Notify spawner of this AI's death.
-            var spawner = Object.FindObjectOfType<AISpawnerManager>();
+            var spawner = Object.FindAnyObjectByType<AISpawnerManager>();
             if (spawner != null)
             {
                 spawner.HandleAIDeath(controller.GetComponent<NetworkObject>().NetworkObjectId);

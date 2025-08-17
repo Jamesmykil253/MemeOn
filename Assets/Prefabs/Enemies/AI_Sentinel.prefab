@@ -15,15 +15,17 @@ GameObject:
   - component: {fileID: 6243120618710830708}
   - component: {fileID: 8728064199307395441}
   - component: {fileID: 2839988318425290788}
+  - component: {fileID: 604985567237015692}
+  - component: {fileID: 3181479697713699956}
+  - component: {fileID: 1112101952136533399}
+  - component: {fileID: 3877557719241085013}
+  - component: {fileID: 5142800053409430414}
   - component: {fileID: 8416837665778569730}
   - component: {fileID: 7682907366748011513}
   - component: {fileID: 3143949475707213328}
   - component: {fileID: 1493298492398594164}
-  - component: {fileID: 1112101952136533399}
   - component: {fileID: 2338156717909988826}
   - component: {fileID: 487373776202376351}
-  - component: {fileID: 3877557719241085013}
-  - component: {fileID: 3181479697713699956}
   m_Layer: 8
   m_Name: AI_Sentinel
   m_TagString: Untagged
@@ -61,7 +63,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3846058723
+  GlobalObjectIdHash: 3808274885
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -143,15 +145,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   config: {fileID: 0}
-  stats: {fileID: 0}
   spawnPosition: {x: 0, y: 0, z: 0}
   targetId: 0
   aggroed: 0
   lastHitTimestamp: 0
   timeSinceLastSuccessfulHit: 0
   lastKnownTargetPos: {x: 0, y: 0, z: 0}
-  failedHitCounter: 0
-  patienceThreshold: 3
 --- !u!114 &2839988318425290788
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -166,7 +165,88 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   _config: {fileID: 0}
+  _stats: {fileID: 0}
   projectilePrefab: {fileID: 8242624005166438942, guid: 7cbf3c1704be44cbbbb969254cf8a19a, type: 3}
+  muzzle: {fileID: 0}
+--- !u!114 &604985567237015692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58e6b505182264026a74333c8bc1203e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
+--- !u!114 &3181479697713699956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0893fa2156544499abaee0ecdeb1d09b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
+--- !u!114 &1112101952136533399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7fa531e2f9bff4e4d9bb5c848de35132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  radius: 1.6
+  range: 1.8
+  damage: 20
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 1088
+--- !u!114 &3877557719241085013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3adba090bb24c4268a661d82eb750eff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &5142800053409430414
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfe7f46da1d474df3b8a993db2fb970d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  config: {fileID: 0}
+  spawnPosition: {x: 0, y: 0, z: 0}
+  targetId: 0
+  aggroed: 0
+  lastHitTimestamp: 0
+  timeSinceLastSuccessfulHit: 0
+  lastKnownTargetPos: {x: 0, y: 0, z: 0}
 --- !u!195 &8416837665778569730
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -290,25 +370,6 @@ SkinnedMeshRenderer:
     m_Center: {x: 0, y: 1.62, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
   m_DirtyAABB: 0
---- !u!114 &1112101952136533399
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7fa531e2f9bff4e4d9bb5c848de35132, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  radius: 1.6
-  range: 1.8
-  damage: 20
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 1088
 --- !u!114 &2338156717909988826
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -347,33 +408,6 @@ MonoBehaviour:
   stunColor: {r: 0, g: 0, b: 1, a: 1}
   returnColor: {r: 1, g: 0, b: 1, a: 1}
   deadColor: {r: 0, g: 0, b: 0, a: 1}
---- !u!114 &3877557719241085013
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3adba090bb24c4268a661d82eb750eff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
---- !u!114 &3181479697713699956
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0893fa2156544499abaee0ecdeb1d09b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
 --- !u!1 &1130387500137640481
 GameObject:
   m_ObjectHideFlags: 0
