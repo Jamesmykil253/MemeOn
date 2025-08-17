@@ -73,8 +73,22 @@ namespace MemeArena.AI
             _characterController = GetComponent<CharacterController>();
             _health = GetComponent<NetworkHealth>();
 
+            // Validate required components
+            if (_blackboard == null)
+            {
+                Debug.LogError($"{name}: AIBlackboard component is missing and required for AI functionality.");
+            }
+            if (_characterController == null)
+            {
+                Debug.LogError($"{name}: CharacterController component is missing and required for AI movement.");
+            }
+            if (_health == null)
+            {
+                Debug.LogError($"{name}: NetworkHealth component is missing and required for AI damage handling.");
+            }
+
             // Copy config from blackboard if one was not set via inspector.
-            if (_config == null && _blackboard.config != null)
+            if (_config == null && _blackboard?.config != null)
             {
                 _config = _blackboard.config;
             }
@@ -86,17 +100,30 @@ namespace MemeArena.AI
             }
 
             // Set spawn position on blackboard.
-            _blackboard.spawnPosition = transform.position;
+            if (_blackboard != null)
+            {
+                _blackboard.spawnPosition = transform.position;
+            }
 
             // Subscribe to health events on the server.  Do not subscribe on clients.
-            _health.OnDamageReceived += OnDamageReceived;
-            _health.OnDeath += OnDeath;
+            if (_health != null)
+            {
+                _health.OnDamageReceived += OnDamageReceived;
+                _health.OnDeath += OnDeath;
+            }
         }
 
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
             if (!IsServer) return;
+
+            // Validate required components
+            if (_blackboard == null)
+            {
+                Debug.LogError($"{name}: AIBlackboard component is missing. AI will not function correctly.");
+                return;
+            }
 
             // Configure tick intervals.  Avoid dividing by zero.
             _aiTickInterval = ProjectConstants.AI.AITickRate > 0 ? 1f / ProjectConstants.AI.AITickRate : 0.1f;
@@ -116,23 +143,19 @@ namespace MemeArena.AI
             // Initialize state to Idle.
             ChangeState(nameof(IdleState));
             _initialized = true;
-
         }
 
         private void Update()
         {
-            if (!IsServer || !_initialized) return;
+            if (!IsServer || !_initialized || _blackboard == null) return;
 
             float dt = Time.deltaTime;
             _aiTimer += dt;
             _btTimer += dt;
 
-            // Run behaviour tree at its own cadence.
-            if (_btTimer >= _btTickInterval)
-            {
-                _btTimer -= _btTickInterval;
-                _behaviorTree?.Tick(_btTickInterval);
-            }
+            // Skip behavior tree tick since it's just a placeholder doing nothing
+            // This saves unnecessary method calls and timer updates
+            // _behaviorTree?.Tick(_btTickInterval);
 
             // Run the current state at its own cadence.
             if (_aiTimer >= _aiTickInterval)
@@ -174,21 +197,28 @@ namespace MemeArena.AI
         /// </summary>
         private void OnDamageReceived(int amount, ulong attackerId)
         {
-            if (!IsServer) return;
+            if (!IsServer || _blackboard == null) return;
+            
             // Record the time of the last hit.
             _blackboard.lastHitTimestamp = Time.time;
             _blackboard.timeSinceLastSuccessfulHit = 0f;
             // Mark as aggroed and set target.
             _blackboard.aggroed = true;
             _blackboard.targetId = attackerId;
+            
             // Attempt to remember the last known position of the attacker.
-            NetworkObject targetObj = NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(attackerId)
-                ? NetworkManager.Singleton.SpawnManager.SpawnedObjects[attackerId]
-                : null;
+            NetworkObject targetObj = null;
+            if (NetworkManager.Singleton?.SpawnManager?.SpawnedObjects != null &&
+                NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(attackerId))
+            {
+                targetObj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[attackerId];
+            }
+            
             if (targetObj != null)
             {
                 _blackboard.lastKnownTargetPos = targetObj.transform.position;
             }
+            
             // If currently idle or returning to spawn, transition to alert.
             if (_currentState is IdleState || _currentState is ReturnToSpawnState)
             {
@@ -202,7 +232,7 @@ namespace MemeArena.AI
         /// </summary>
         public void OnSuccessfulHit()
         {
-            if (!IsServer) return;
+            if (!IsServer || _blackboard == null) return;
             _blackboard.timeSinceLastSuccessfulHit = 0f;
         }
 
@@ -235,12 +265,22 @@ namespace MemeArena.AI
         /// </summary>
         public void Move(Vector3 direction, float dt)
         {
-            if (!IsServer || _stats == null) return;
+            if (!IsServer || _stats == null || _characterController == null) return;
+            if (dt <= 0f) return; // Avoid invalid delta time
+            
             Vector3 flatDir = new Vector3(direction.x, 0f, direction.z);
             if (flatDir.sqrMagnitude > 1e-5f)
             {
                 flatDir.Normalize();
-                _characterController.Move(flatDir * _stats.moveSpeed * dt);
+                Vector3 movement = flatDir * _stats.moveSpeed * dt;
+                
+                // Clamp movement to reasonable bounds to prevent teleporting
+                if (movement.magnitude > _stats.moveSpeed * dt * 2f)
+                {
+                    movement = movement.normalized * _stats.moveSpeed * dt;
+                }
+                
+                _characterController.Move(movement);
             }
         }
 
@@ -252,11 +292,17 @@ namespace MemeArena.AI
         public void FaceTowards(Vector3 position, float dt)
         {
             if (!IsServer || _stats == null) return;
+            if (dt <= 0f) return; // Avoid invalid delta time
+            
             Vector3 dir = new Vector3(position.x - transform.position.x, 0f, position.z - transform.position.z);
             if (dir.sqrMagnitude < 1e-5f) return;
+            
             dir.Normalize();
             Quaternion targetRot = Quaternion.LookRotation(dir);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, _stats.rotationSpeed * dt);
+            
+            // Clamp rotation speed to prevent infinite rotation
+            float clampedRotSpeed = Mathf.Clamp(_stats.rotationSpeed, 0f, 720f); // Max 2 full rotations per second
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, clampedRotSpeed * dt);
         }
         #endregion
 
