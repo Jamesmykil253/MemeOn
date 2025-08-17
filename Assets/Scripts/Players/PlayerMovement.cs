@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine.InputSystem;
 
 namespace MemeArena.Players
@@ -10,6 +11,7 @@ namespace MemeArena.Players
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(CharacterController))]
+    [RequireComponent(typeof(NetworkTransform))]
     public class PlayerMovement : NetworkBehaviour
     {
         [Header("Movement")]
@@ -21,10 +23,19 @@ namespace MemeArena.Players
     public InputActionReference moveAction; // Vector2 action ("Move")
     public InputActionReference attackAction; // Button action ("Attack")
 
+        // Fallback when InputActionReferences are not wired in the inspector.
+        InputSystem_Actions _actions; // generated class from Assets/InputSystem_Actions.inputactions
+        InputAction _moveFallback;
+        InputAction _attackFallback;
+
         CharacterController _cc;
         Vector3 _serverVelocity;
         Vector2 _lastClientMove;
         float _externalSpeedMultiplier = 1f;
+    [Header("Debug")]
+    [SerializeField] bool debugLogs = false;
+    bool _loggedOwnerNonZero;
+    bool _loggedServerNonZero;
 
         void Awake()
         {
@@ -33,25 +44,64 @@ namespace MemeArena.Players
 
         public override void OnNetworkSpawn()
         {
-            if (IsOwner && moveAction != null)
+            if (IsOwner)
             {
-                moveAction.action.Enable();
+                // Enable assigned references if present
+                if (moveAction != null) moveAction.action.Enable();
+                if (attackAction != null) attackAction.action.Enable();
+
+                // Auto-bind fallback if references are missing
+                if (moveAction == null || attackAction == null)
+                {
+                    _actions = new InputSystem_Actions();
+                    _actions.Player.Enable();
+                    if (moveAction == null) _moveFallback = _actions.Player.Move;
+                    if (attackAction == null) _attackFallback = _actions.Player.Attack;
+                    Debug.Log("PlayerMovement: Using auto-bound InputSystem_Actions fallback.");
+                }
+
+                // Warn about duplicate movement controllers
+                var ctrl = GetComponent<PlayerController>();
+                if (ctrl != null)
+                {
+                    Debug.LogWarning("PlayerMovement: PlayerController also present. Disable one movement script to avoid conflicts.");
+                }
+                // Warn if no NetworkTransform present (string lookup avoids hard dependency)
+                if (GetComponent("NetworkTransform") == null)
+                {
+                    Debug.LogWarning("PlayerMovement: No NetworkTransform detected. Client-side won’t see server movement. Add Unity.Netcode.Components.NetworkTransform to the player prefab.");
+                }
             }
-            if (IsOwner && attackAction != null)
+
+            // General diagnostics for common misconfigurations
+            if (!IsOwner)
             {
-                attackAction.action.Enable();
+                Debug.Log("PlayerMovement: This instance is not the owner; it will not read local input.");
+            }
+            if (NetworkManager.Singleton == null || (!NetworkManager.Singleton.IsServer && !NetworkManager.Singleton.IsClient))
+            {
+                Debug.LogWarning("PlayerMovement: Netcode not running. Start as Host/Server+Client to test movement (server-authoritative).");
+            }
+            if (!NetworkObject.IsPlayerObject)
+            {
+                Debug.LogWarning("PlayerMovement: NetworkObject is not marked as PlayerObject. Ensure this prefab is configured as the Player Prefab in NetworkManager or spawned as a player.");
             }
         }
 
         void OnDisable()
         {
-            if (IsOwner && moveAction != null)
+            if (IsOwner)
             {
-                moveAction.action.Disable();
-            }
-            if (IsOwner && attackAction != null)
-            {
-                attackAction.action.Disable();
+                if (moveAction != null) moveAction.action.Disable();
+                if (attackAction != null) attackAction.action.Disable();
+                if (_actions != null)
+                {
+                    _actions.Player.Disable();
+                    _actions.Dispose();
+                    _actions = null;
+                    _moveFallback = null;
+                    _attackFallback = null;
+                }
             }
         }
 
@@ -60,14 +110,19 @@ namespace MemeArena.Players
         {
             if (IsOwner)
             {
-                var mv = moveAction != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
+                var mv = moveAction != null ? moveAction.action.ReadValue<Vector2>() : (_moveFallback != null ? _moveFallback.ReadValue<Vector2>() : Vector2.zero);
+                if (debugLogs && !_loggedOwnerNonZero && mv.sqrMagnitude > 0.0001f)
+                {
+                    _loggedOwnerNonZero = true;
+                    Debug.Log($"PlayerMovement: Owner input detected {mv}");
+                }
                 SubmitInputServerRpc(mv, Time.fixedDeltaTime);
 
                 // Attack input: trigger a server RPC on the combat controller with a small cooldown
-                if (attackAction != null)
+                if (attackAction != null || _attackFallback != null)
                 {
                     _fireCooldownTimer -= Time.fixedDeltaTime;
-                    bool pressed = attackAction.action.WasPressedThisFrame();
+                    bool pressed = attackAction != null ? attackAction.action.WasPressedThisFrame() : _attackFallback.WasPressedThisFrame();
                     if (pressed && _fireCooldownTimer <= 0f)
                     {
                         var combat = GetComponent<PlayerCombatController>();
@@ -100,10 +155,15 @@ namespace MemeArena.Players
             }
         }
 
-        [ServerRpc]
+    [ServerRpc]
         void SubmitInputServerRpc(Vector2 move, float dt)
         {
             _lastClientMove = move;
+            if (debugLogs && !_loggedServerNonZero && move.sqrMagnitude > 0.0001f)
+            {
+                _loggedServerNonZero = true;
+                Debug.Log($"PlayerMovement: Server received input {move}");
+            }
         }
 
         /// <summary>Apply slow/heal effects externally via zones. 1 = normal.</summary>
