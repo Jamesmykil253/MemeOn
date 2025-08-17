@@ -16,18 +16,45 @@ namespace MemeArena.UI
         [Tooltip("PlayerStats component providing the level value.")]
         [SerializeField] private PlayerStats playerStats;
 
-        private void Start()
+        public void SetSource(PlayerStats stats)
+        {
+            if (playerStats != null)
+            {
+                playerStats.OnLevelChanged -= HandleLevelChanged;
+            }
+            playerStats = stats;
+            if (isActiveAndEnabled && playerStats != null)
+            {
+                playerStats.OnLevelChanged += HandleLevelChanged;
+                HandleLevelChanged(playerStats.Level);
+            }
+        }
+
+        private void OnEnable()
         {
             if (playerStats == null)
             {
                 playerStats = GetComponentInParent<PlayerStats>();
             }
+            if (playerStats != null)
+            {
+                playerStats.OnLevelChanged += HandleLevelChanged;
+                HandleLevelChanged(playerStats.Level);
+            }
         }
 
-        private void Update()
+        private void OnDisable()
         {
-            if (levelText == null || playerStats == null) return;
-            levelText.text = playerStats.Level.ToString();
+            if (playerStats != null)
+            {
+                playerStats.OnLevelChanged -= HandleLevelChanged;
+            }
+        }
+
+        private void HandleLevelChanged(int newLevel)
+        {
+            if (levelText == null) return;
+            levelText.text = newLevel.ToString();
         }
     }
 }

@@ -17,18 +17,45 @@ namespace MemeArena.UI
         [Tooltip("PlayerInventory component to read the coin count from.")]
     [SerializeField] private PlayerInventory inventory;
 
-        private void Start()
+        public void SetSource(PlayerInventory inv)
+        {
+            if (inventory != null)
+            {
+                inventory.OnCoinsChanged -= HandleCoinsChanged;
+            }
+            inventory = inv;
+            if (isActiveAndEnabled && inventory != null)
+            {
+                inventory.OnCoinsChanged += HandleCoinsChanged;
+                HandleCoinsChanged(inventory.Coins.Value);
+            }
+        }
+
+        private void OnEnable()
         {
             if (inventory == null)
             {
                 inventory = GetComponentInParent<PlayerInventory>();
             }
+            if (inventory != null)
+            {
+                inventory.OnCoinsChanged += HandleCoinsChanged;
+                HandleCoinsChanged(inventory.Coins.Value);
+            }
         }
 
-        private void Update()
+        private void OnDisable()
         {
-            if (coinText == null || inventory == null) return;
-            coinText.text = inventory.Coins.Value.ToString();
+            if (inventory != null)
+            {
+                inventory.OnCoinsChanged -= HandleCoinsChanged;
+            }
+        }
+
+        private void HandleCoinsChanged(int newCoins)
+        {
+            if (coinText == null) return;
+            coinText.text = newCoins.ToString();
         }
     }
 }

@@ -17,25 +17,48 @@ namespace MemeArena.UI
 
         [Tooltip("PlayerStats component providing XP and level values.")]
         [SerializeField] private PlayerStats playerStats;
+        public void SetSource(PlayerStats stats)
+        {
+            if (playerStats != null)
+            {
+                playerStats.OnXPChanged -= HandleXPChanged;
+            }
+            playerStats = stats;
+            if (isActiveAndEnabled && playerStats != null)
+            {
+                playerStats.OnXPChanged += HandleXPChanged;
+                HandleXPChanged(playerStats.CurrentXP, playerStats.Level, baseXPForLevel * playerStats.Level);
+            }
+        }
 
         [Tooltip("Base XP required for level 2.  Should match PlayerStats.baseXPForLevel.")]
         [SerializeField] private int baseXPForLevel = 10;
 
-        private void Start()
+        private void OnEnable()
         {
             if (playerStats == null)
             {
                 playerStats = GetComponentInParent<PlayerStats>();
             }
+            if (playerStats != null)
+            {
+                playerStats.OnXPChanged += HandleXPChanged;
+                HandleXPChanged(playerStats.CurrentXP, playerStats.Level, baseXPForLevel * playerStats.Level);
+            }
         }
 
-        private void Update()
+        private void OnDisable()
         {
-            if (fillImage == null || playerStats == null) return;
-            int level = playerStats.Level;
-            int xp = playerStats.CurrentXP;
-            int threshold = baseXPForLevel * level;
-            float ratio = threshold > 0 ? (float)xp / threshold : 0f;
+            if (playerStats != null)
+            {
+                playerStats.OnXPChanged -= HandleXPChanged;
+            }
+        }
+
+        private void HandleXPChanged(int currentXP, int level, int threshold)
+        {
+            if (fillImage == null) return;
+            float ratio = threshold > 0 ? (float)currentXP / threshold : 0f;
             fillImage.fillAmount = Mathf.Clamp01(ratio);
         }
     }

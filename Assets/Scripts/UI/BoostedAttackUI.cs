@@ -16,18 +16,45 @@ namespace MemeArena.UI
         [Tooltip("BoostedAttackTracker component to check the boosted state.")]
         [SerializeField] private BoostedAttackTracker boostedTracker;
 
-        private void Start()
+        public void SetSource(BoostedAttackTracker tracker)
+        {
+            if (boostedTracker != null)
+            {
+                boostedTracker.OnBoostChanged -= HandleBoostChanged;
+            }
+            boostedTracker = tracker;
+            if (isActiveAndEnabled && boostedTracker != null)
+            {
+                boostedTracker.OnBoostChanged += HandleBoostChanged;
+                HandleBoostChanged(boostedTracker.IsBoosted);
+            }
+        }
+
+        private void OnEnable()
         {
             if (boostedTracker == null)
             {
                 boostedTracker = GetComponentInParent<BoostedAttackTracker>();
             }
+            if (boostedTracker != null)
+            {
+                boostedTracker.OnBoostChanged += HandleBoostChanged;
+                HandleBoostChanged(boostedTracker.IsBoosted);
+            }
         }
 
-        private void Update()
+        private void OnDisable()
         {
-            if (icon == null || boostedTracker == null) return;
-            icon.enabled = boostedTracker.IsBoosted;
+            if (boostedTracker != null)
+            {
+                boostedTracker.OnBoostChanged -= HandleBoostChanged;
+            }
+        }
+
+        private void HandleBoostChanged(bool isBoosted)
+        {
+            if (icon == null) return;
+            icon.enabled = isBoosted;
         }
     }
 }

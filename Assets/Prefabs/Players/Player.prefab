@@ -68,7 +68,6 @@ GameObject:
   - component: {fileID: 7330676258798695526}
   - component: {fileID: 6793057788261664666}
   - component: {fileID: 6068574504525434252}
-  - component: {fileID: -8750772828443675708}
   - component: {fileID: 2003279826373057906}
   - component: {fileID: 735739966014345678}
   - component: {fileID: 3257756471342274038}
@@ -77,6 +76,8 @@ GameObject:
   - component: {fileID: 3786457875211736993}
   - component: {fileID: 3249325954992231580}
   - component: {fileID: -2382671246328507373}
+  - component: {fileID: 3790259089788610256}
+  - component: {fileID: 8554240275179364057}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -214,22 +215,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   TeamIndex:
-    m_InternalValue: 0
---- !u!114 &-8750772828443675708
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b68fa29bef604e8d94201b674115fee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  CurrentHealth:
     m_InternalValue: 0
 --- !u!114 &2003279826373057906
 MonoBehaviour:
@@ -399,6 +384,33 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   baseXPForLevel: 10
+--- !u!114 &3790259089788610256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2170685497171753368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 426e253f3ce704e8eb94b262dbb40f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &8554240275179364057
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2170685497171753368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 58e6b505182264026a74333c8bc1203e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
 --- !u!1 &4613641378409642606
 GameObject:
   m_ObjectHideFlags: 0

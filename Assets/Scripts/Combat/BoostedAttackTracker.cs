@@ -26,6 +26,21 @@ namespace MemeArena.Combat
             {
                 _isBoosted.Value = false;
             }
+            _isBoosted.OnValueChanged += HandleBoostChanged;
+            OnBoostChanged?.Invoke(_isBoosted.Value);
+        }
+
+    public override void OnDestroy()
+        {
+            base.OnDestroy();
+            _isBoosted.OnValueChanged -= HandleBoostChanged;
+        }
+
+        public event System.Action<bool> OnBoostChanged;
+
+        private void HandleBoostChanged(bool previous, bool current)
+        {
+            OnBoostChanged?.Invoke(current);
         }
 
         /// <summary>

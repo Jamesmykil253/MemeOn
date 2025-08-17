@@ -27,8 +27,12 @@ namespace MemeArena.Combat
         [SerializeField]
         public int maxHealth = 100;
 
-        public event Action<int, ulong> OnDamageReceived;
-        public event Action OnDeath;
+    public event Action<int, ulong> OnDamageReceived;
+    public event Action OnDeath;
+    /// <summary>
+    /// Fired on clients and server whenever current health changes. Provides (current, max).
+    /// </summary>
+    public event Action<int, int> OnHealthChanged;
 
         public override void OnNetworkSpawn()
         {
@@ -37,6 +41,20 @@ namespace MemeArena.Combat
             {
                 _currentHealth.Value = maxHealth;
             }
+            // Broadcast initial value and listen for changes on all peers.
+            OnHealthChanged?.Invoke(_currentHealth.Value, maxHealth);
+            _currentHealth.OnValueChanged += OnHealthValueChanged;
+        }
+
+    public override void OnDestroy()
+        {
+            base.OnDestroy();
+            _currentHealth.OnValueChanged -= OnHealthValueChanged;
+        }
+
+        private void OnHealthValueChanged(int previous, int current)
+        {
+            OnHealthChanged?.Invoke(current, maxHealth);
         }
 
         /// <summary>

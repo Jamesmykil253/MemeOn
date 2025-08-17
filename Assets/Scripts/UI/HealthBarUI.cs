@@ -18,20 +18,46 @@ namespace MemeArena.UI
         [Tooltip("NetworkHealth component providing current and maximum health.")]
         [SerializeField] private NetworkHealth health;
 
-        private void Start()
+        public void SetSource(NetworkHealth source)
         {
-            // If no health is assigned, attempt to find one on the same or parent GameObject.
+            if (health != null)
+            {
+                health.OnHealthChanged -= HandleHealthChanged;
+            }
+            health = source;
+            if (isActiveAndEnabled && health != null)
+            {
+                health.OnHealthChanged += HandleHealthChanged;
+                HandleHealthChanged(health.GetCurrentHealth(), health.maxHealth);
+            }
+        }
+
+        private void OnEnable()
+        {
             if (health == null)
             {
                 health = GetComponentInParent<NetworkHealth>();
             }
+            if (health != null)
+            {
+                health.OnHealthChanged += HandleHealthChanged;
+                // Push initial value
+                HandleHealthChanged(health.GetCurrentHealth(), health.maxHealth);
+            }
         }
 
-        private void Update()
+        private void OnDisable()
         {
-            if (health == null || fillImage == null) return;
-            if (health.maxHealth <= 0) return;
-            float ratio = (float)health.GetCurrentHealth() / health.maxHealth;
+            if (health != null)
+            {
+                health.OnHealthChanged -= HandleHealthChanged;
+            }
+        }
+
+        private void HandleHealthChanged(int current, int max)
+        {
+            if (fillImage == null || max <= 0) return;
+            float ratio = (float)current / max;
             fillImage.fillAmount = Mathf.Clamp01(ratio);
         }
     }

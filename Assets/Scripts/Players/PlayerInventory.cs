@@ -12,6 +12,26 @@ namespace MemeArena.Players
         public NetworkVariable<int> Coins =
             new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+        public event System.Action<int> OnCoinsChanged;
+
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+            Coins.OnValueChanged += HandleCoinsChanged;
+            OnCoinsChanged?.Invoke(Coins.Value);
+        }
+
+    public override void OnDestroy()
+        {
+            base.OnDestroy();
+            Coins.OnValueChanged -= HandleCoinsChanged;
+        }
+
+        private void HandleCoinsChanged(int previous, int current)
+        {
+            OnCoinsChanged?.Invoke(current);
+        }
+
         public void AddCoins(int amount)
         {
             if (!IsServer || amount <= 0) return;
