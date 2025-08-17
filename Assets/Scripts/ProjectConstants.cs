@@ -56,4 +56,17 @@ public static class ProjectConstants
         public const int AI = MemeArena.Network.ProjectConstants.Layers.AI;
         public const int Projectile = MemeArena.Network.ProjectConstants.Layers.Projectile;
     }
+
+    /// <summary>
+    /// Game‑level constants mirrored from the namespaced version.  Some
+    /// legacy scripts refer to ProjectConstants.Game for parameters such
+    /// as match length, deposit cooldown and respawn delay.  These fields
+    /// simply forward to their equivalents in <see cref="MemeArena.Network.ProjectConstants"/>.
+    /// </summary>
+    public static class Game
+    {
+        public const float MatchLength = MemeArena.Network.ProjectConstants.Match.MatchLength;
+        public const float DepositCooldown = MemeArena.Network.ProjectConstants.Match.DepositCooldown;
+        public const float RespawnDelay = MemeArena.Network.ProjectConstants.Match.RespawnDelay;
+    }
 }

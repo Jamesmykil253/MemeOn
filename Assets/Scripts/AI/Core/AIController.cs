@@ -48,17 +48,8 @@ namespace MemeArena.AI
         private float _btTimer;
         private bool _initialized;
 
-        // Attack cooldown timer used by legacy helper methods.  When greater
-        // than zero, the AI is considered to be on cooldown.  It is
-        // decremented every frame in Update().  Legacy BT nodes rely on
-        // this timer to determine when the AI can fire again.
-        private float _attackCooldownTimer;
-
-        // Legacy finite state machine wrapper.  Some deprecated scripts
-        // reference an `fsm` field on AIController.  It forwards
-        // ChangeState requests to this controller using a compatibility
-        // mapping defined in LegacyFSM.  Initialised in OnNetworkSpawn().
-        private LegacyFSM fsm;
+        // Attack cooldown timer used by legacy helper methods has been removed.
+        // The new FSM handles attack timings within its own states.
 
         // Simple behaviour tree placeholder; not fully implemented but
         // included for extensibility.
@@ -126,9 +117,6 @@ namespace MemeArena.AI
             ChangeState(nameof(IdleState));
             _initialized = true;
 
-            // Initialise the legacy finite state machine.  This wrapper
-            // allows older scripts to request state changes via fsm.
-            fsm = new LegacyFSM(this);
         }
 
         private void Update()
@@ -138,15 +126,6 @@ namespace MemeArena.AI
             float dt = Time.deltaTime;
             _aiTimer += dt;
             _btTimer += dt;
-
-            // Reduce the attack cooldown timer for legacy BT nodes.  This
-            // occurs independently of the AI tick interval so that cooldowns
-            // elapse smoothly between state updates.
-            if (_attackCooldownTimer > 0f)
-            {
-                _attackCooldownTimer -= dt;
-                if (_attackCooldownTimer < 0f) _attackCooldownTimer = 0f;
-            }
 
             // Run behaviour tree at its own cadence.
             if (_btTimer >= _btTickInterval)

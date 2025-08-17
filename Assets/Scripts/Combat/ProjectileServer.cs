@@ -128,6 +128,44 @@ namespace MemeArena.Combat
             Launch();
         }
 
+        /// <summary>
+        /// Launches the projectile and sets its parameters based on the
+        /// specified owner GameObject.  This overload matches the legacy
+        /// signature used by PlayerCombatController.  The owner provides
+        /// orientation and team/owner information.  The damage, speed and
+        /// lifetime parameters override the defaults on this component.
+        /// </summary>
+        /// <param name="owner">The GameObject that spawned the projectile (usually the player).</param>
+        /// <param name="newDamage">Damage to apply on hit.</param>
+        /// <param name="newSpeed">Movement speed in units per second.</param>
+        /// <param name="life">Lifetime in seconds before despawning.</param>
+        public void Launch(GameObject owner, int newDamage, float newSpeed, float life)
+        {
+            // Set orientation to match the owner's forward direction.
+            if (owner != null)
+            {
+                transform.rotation = owner.transform.rotation;
+                // Assign owner identification if possible.
+                NetworkObject n = owner.GetComponent<NetworkObject>();
+                if (n != null)
+                {
+                    ownerClientId = n.OwnerClientId;
+                }
+                TeamId team = owner.GetComponent<TeamId>();
+                if (team != null)
+                {
+                    ownerTeam = team.team;
+                }
+            }
+            // Apply parameters.
+            damage = newDamage;
+            speed = newSpeed;
+            lifeSeconds = life;
+            _timer = life;
+            // Configure collider and other launch settings.
+            Launch();
+        }
+
         private void NotifyOwnerSuccess()
         {
             if (!IsServer) return;
