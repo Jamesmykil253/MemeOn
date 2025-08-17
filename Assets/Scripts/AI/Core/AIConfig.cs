@@ -1,4 +1,5 @@
 using UnityEngine;
+using MemeArena.Network;
 
 namespace MemeArena.AI
 {
