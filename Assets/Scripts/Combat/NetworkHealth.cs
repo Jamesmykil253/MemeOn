@@ -19,7 +19,7 @@ namespace MemeArena.Combat
         /// Current health of the object.  Synchronised to clients for UI
         /// display but authority resides on the server.
         /// </summary>
-        private NetworkVariable<int> _currentHealth = new NetworkVariable<int>();
+    private NetworkVariable<int> _currentHealth = new NetworkVariable<int>();
 
         /// <summary>
         /// Maximum health.  Set from a CharacterStats or via inspector.
@@ -52,6 +52,7 @@ namespace MemeArena.Combat
             if (_currentHealth.Value <= 0) return;
             _currentHealth.Value = Math.Max(0, _currentHealth.Value - amount);
             OnDamageReceived?.Invoke(amount, attackerId);
+            CombatEvents.RaiseDamageReceived(GetComponent<NetworkObject>().NetworkObjectId, attackerId, amount);
             if (_currentHealth.Value == 0)
             {
                 OnDeath?.Invoke();
@@ -59,9 +60,20 @@ namespace MemeArena.Combat
         }
 
         /// <summary>
+        /// Heals this entity by the specified amount. Server only. Clamps to maxHealth.
+        /// </summary>
+        public void Heal(int amount)
+        {
+            if (!IsServer || amount <= 0) return;
+            if (_currentHealth.Value <= 0) return; // dead entities don't heal
+            _currentHealth.Value = Math.Min(maxHealth, _currentHealth.Value + amount);
+        }
+
+        /// <summary>
         /// Returns the current health on the client.  For server side logic
         /// please access the network variable directly.
         /// </summary>
-        public int GetCurrentHealth() => _currentHealth.Value;
+    public int GetCurrentHealth() => _currentHealth.Value;
+    public int MaxHealth => maxHealth;
     }
 }

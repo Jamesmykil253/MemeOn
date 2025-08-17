@@ -12,6 +12,9 @@ namespace MemeArena.Items
     public class Coin : NetworkBehaviour
     {
         public float rotateDegPerSec = 90f;
+    // Optional: set by CoinSpawner so it can respawn coins after collection
+    [HideInInspector] public MemeArena.Spawning.CoinSpawner spawner;
+    [HideInInspector] public Transform spawnPoint;
 
         void Update()
         {
@@ -27,6 +30,11 @@ namespace MemeArena.Items
             if (inv != null && other.CompareTag("Player"))
             {
                 inv.AddCoins(1);
+                // Notify spawner before despawn so it can schedule a respawn
+                if (spawner != null && spawnPoint != null)
+                {
+                    spawner.OnCoinCollected(spawnPoint);
+                }
                 GetComponent<NetworkObject>().Despawn(true);
             }
         }

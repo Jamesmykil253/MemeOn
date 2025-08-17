@@ -38,14 +38,14 @@ namespace MemeArena.Game
             var inv = other.GetComponentInParent<PlayerInventory>();
             var health = other.GetComponentInParent<HealthNetwork>();
             var move = other.GetComponentInParent<MemeArena.Players.PlayerMovement>();
-            var tid = other.GetComponentInParent<MemeArena.Utilities.TeamId>();
+            var tid = other.GetComponentInParent<MemeArena.Network.TeamId>();
             var nob = other.GetComponentInParent<NetworkObject>();
 
             if (inv == null || tid == null || nob == null) return;
 
             if (zoneType == ZoneType.TeamGoal)
             {
-                bool isOwnGoal = tid.teamId == teamId;
+                bool isOwnGoal = tid.team == teamId;
 
                 if (isOwnGoal)
                 {
@@ -85,8 +85,8 @@ namespace MemeArena.Game
 
             // Reset slow when leaving enemy goal
             var move = other.GetComponentInParent<MemeArena.Players.PlayerMovement>();
-            var tid = other.GetComponentInParent<MemeArena.Utilities.TeamId>();
-            if (move != null && tid != null && zoneType == ZoneType.TeamGoal && tid.teamId != teamId)
+            var tid = other.GetComponentInParent<MemeArena.Network.TeamId>();
+            if (move != null && tid != null && zoneType == ZoneType.TeamGoal && tid.team != teamId)
             {
                 move.SetExternalSpeedMultiplier(1f);
             }
@@ -115,8 +115,8 @@ namespace MemeArena.Game
             int deposited = inv.DepositAll();
             if (deposited > 0 && MatchManager.Instance != null)
             {
-                var tid = player.GetComponent<MemeArena.Utilities.TeamId>();
-                MatchManager.Instance.AddScore(tid.teamId, deposited);
+                var tid = player.GetComponent<MemeArena.Network.TeamId>();
+                MatchManager.Instance.AddScore(tid.team, deposited);
             }
 
             _deposits.Remove(player);

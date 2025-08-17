@@ -28,19 +28,21 @@ public sealed class NetworkDamageFlash : NetworkBehaviour
         }
     }
 
+    private MemeArena.Combat.NetworkHealth _health;
     public override void OnNetworkSpawn()
     {
-        if (IsServer) CombatEvents.OnDamageReceived += OnDamageReceivedServer;
+        _health = GetComponentInParent<MemeArena.Combat.NetworkHealth>();
+        if (IsServer && _health != null) _health.OnDamageReceived += OnLocalDamageServer;
     }
     public override void OnNetworkDespawn()
     {
-        if (IsServer) CombatEvents.OnDamageReceived -= OnDamageReceivedServer;
+        if (IsServer && _health != null) _health.OnDamageReceived -= OnLocalDamageServer;
     }
 
-    private void OnDamageReceivedServer(ulong victimId, ulong attackerId, float dmg)
+    private void OnLocalDamageServer(int amount, ulong attackerId)
     {
         if (!IsServer) return;
-        if (victimId == OwnerClientId) FlashClientRpc();
+        FlashClientRpc();
     }
 
     [ClientRpc] private void FlashClientRpc()

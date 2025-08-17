@@ -276,11 +276,13 @@ namespace MemeArena.AI
             {
                 if (col.gameObject == gameObject) continue;
                 NetworkHealth targetHealth = col.GetComponent<NetworkHealth>();
+                HealthNetwork targetHealthLegacy = col.GetComponent<HealthNetwork>();
                 TeamId targetTeam = col.GetComponent<TeamId>();
                 TeamId myTeam = GetComponent<TeamId>();
-                if (targetHealth != null && targetTeam != null && myTeam != null && targetTeam.team != myTeam.team)
+                if ((targetHealth != null || targetHealthLegacy != null) && targetTeam != null && myTeam != null && targetTeam.team != myTeam.team)
                 {
-                    targetHealth.TakeDamageServerRpc(10, OwnerClientId);
+                    if (targetHealth != null) targetHealth.TakeDamageServerRpc(10, OwnerClientId);
+                    else targetHealthLegacy.Damage(10);
                     hit = true;
                 }
             }

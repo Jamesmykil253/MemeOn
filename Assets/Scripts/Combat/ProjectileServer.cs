@@ -28,7 +28,9 @@ namespace MemeArena.Combat
         // Owner and team assigned at spawn.  Owner is the clientId of the
         // entity that fired the projectile; ownerTeam is used to prevent
         // friendly fire.
-        [HideInInspector] public ulong ownerClientId;
+    [HideInInspector] public ulong ownerClientId;
+    // NetworkObjectId of the owner, used to look up components reliably.
+    [HideInInspector] public ulong ownerObjectId;
         [HideInInspector] public int ownerTeam;
 
         private float _timer;
@@ -63,13 +65,21 @@ namespace MemeArena.Combat
             if (other.gameObject == gameObject) return;
             // Check for health component.
             NetworkHealth health = other.GetComponent<NetworkHealth>();
+            HealthNetwork healthLegacy = other.GetComponent<HealthNetwork>();
             TeamId targetTeam = other.GetComponent<TeamId>();
-            if (health != null && targetTeam != null)
+            if ((health != null || healthLegacy != null) && targetTeam != null)
             {
                 // Only hit opposing teams.
                 if (targetTeam.team != ownerTeam)
                 {
-                    health.TakeDamageServerRpc(damage, ownerClientId);
+                    if (health != null)
+                    {
+                        health.TakeDamageServerRpc(damage, ownerClientId);
+                    }
+                    else
+                    {
+                        healthLegacy.Damage(damage);
+                    }
                     NotifyOwnerSuccess();
                     Despawn();
                     return;
@@ -142,7 +152,7 @@ namespace MemeArena.Combat
         public void Launch(GameObject owner, int newDamage, float newSpeed, float life)
         {
             // Set orientation to match the owner's forward direction.
-            if (owner != null)
+        if (owner != null)
             {
                 transform.rotation = owner.transform.rotation;
                 // Assign owner identification if possible.
@@ -150,6 +160,7 @@ namespace MemeArena.Combat
                 if (n != null)
                 {
                     ownerClientId = n.OwnerClientId;
+            ownerObjectId = n.NetworkObjectId;
                 }
                 TeamId team = owner.GetComponent<TeamId>();
                 if (team != null)
@@ -170,9 +181,9 @@ namespace MemeArena.Combat
         {
             if (!IsServer) return;
             // Find the owner's AIController and inform it of a successful hit.
-            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(ownerClientId))
+            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(ownerObjectId))
             {
-                var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerClientId].gameObject;
+                var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerObjectId].gameObject;
                 var ai = obj.GetComponent<AIController>();
                 ai?.OnSuccessfulHit();
             }
@@ -182,9 +193,9 @@ namespace MemeArena.Combat
         {
             if (!IsServer) return;
             // Notify the owner AI of a failed hit.
-            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(ownerClientId))
+            if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.ContainsKey(ownerObjectId))
             {
-                var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerClientId].gameObject;
+                var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerObjectId].gameObject;
                 var ai = obj.GetComponent<AIController>();
                 ai?.OnFailedHit();
             }

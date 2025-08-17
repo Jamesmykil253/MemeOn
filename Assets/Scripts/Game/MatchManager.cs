@@ -41,9 +41,9 @@ namespace MemeArena.Game
             }
         }
 
-        [Server] public void AddScore(int teamId, int amount)
+        public void AddScore(int teamId, int amount)
         {
-            if (amount <= 0) return;
+            if (!IsServer || amount <= 0) return;
             if (teamId == 0) Team0Score.Value += amount;
             else Team1Score.Value += amount;
         }

@@ -9,6 +9,7 @@ namespace MemeArena.Players
     /// server for authoritative processing.  When firing, it calls the
     /// FireServerRpc() method on the PlayerCombatController.
     /// </summary>
+    [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : NetworkBehaviour
     {

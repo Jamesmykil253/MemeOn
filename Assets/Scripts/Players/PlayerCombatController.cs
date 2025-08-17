@@ -10,6 +10,7 @@ namespace MemeArena.Players
     /// the player fires.  The RPC naming follows the Netcode for GameObjects
     /// convention that server RPC methods end with the suffix "ServerRpc".
     /// </summary>
+    [RequireComponent(typeof(NetworkObject))]
     public class PlayerCombatController : NetworkBehaviour
     {
         [Tooltip("Projectile prefab to spawn when firing.")]
