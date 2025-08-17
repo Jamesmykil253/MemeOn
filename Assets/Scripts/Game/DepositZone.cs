@@ -1,72 +1,125 @@
-using System.Collections.Generic;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using MemeArena.Items;
-using MemeArena.Network;
+using MemeArena.Players;
+using MemeArena.Combat;
 
 namespace MemeArena.Game
 {
     /// <summary>
-    /// Deposit zone for banking collected coins.  When a player of the same
-    /// team enters and remains in the zone, their coins will be transferred
-    /// to the match score after a cooldown.  This component requires a
-    /// Collider with <c>IsTrigger</c> enabled and a NetworkObject.
+    /// Goal/Neutral zones.
+    /// - Own goal: heal and channel deposit (0.5s per coin)
+    /// - Enemy goal: slow while inside
+    /// - Neutral: no heal, no slow, contestable
+    /// Requires: Trigger Collider.
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    [RequireComponent(typeof(NetworkObject))]
     public class DepositZone : NetworkBehaviour
     {
-        [Tooltip("Team that this deposit zone belongs to.  Only players on this team can deposit coins here.")]
-        [SerializeField] private int teamId = 0;
+        public enum ZoneType { TeamGoal, Neutral }
+        public ZoneType zoneType = ZoneType.TeamGoal;
 
-        [Tooltip("Cooldown in seconds between deposit actions for each player.")]
-        [SerializeField] private float depositCooldown = MemeArena.Network.ProjectConstants.Match.DepositCooldown;
+        [Header("Team Goal Settings")]
+        public int teamId = 0;
+        public float healPerSecond = 10f;
+        public float depositSecondsPerCoin = 0.5f;
 
-        // Keep track of the last deposit time for each player by their network object id.
-        private readonly Dictionary<ulong, float> _lastDepositTime = new Dictionary<ulong, float>();
+        [Header("Enemy Goal Slow")]
+        [Range(0.1f, 1f)] public float enemySlowMultiplier = 0.7f;
 
-        private void Reset()
+        // Track ongoing deposits per player
+        readonly System.Collections.Generic.Dictionary<NetworkObject, Coroutine> _deposits
+            = new System.Collections.Generic.Dictionary<NetworkObject, Coroutine>();
+
+        void OnTriggerStay(Collider other)
         {
-            // Ensure the collider is a trigger by default when added.
-            var col = GetComponent<Collider>();
-            if (col != null) col.isTrigger = true;
-        }
-
-        private void OnTriggerStay(Collider other)
-        {
-            // Deposits are only processed on the server to maintain authority.
             if (!IsServer) return;
 
-            // Only players can deposit coins.  Check the tag defined in constants.
-            if (!other.CompareTag(ProjectConstants.Tags.Player)) return;
+            var inv = other.GetComponentInParent<PlayerInventory>();
+            var health = other.GetComponentInParent<HealthNetwork>();
+            var move = other.GetComponentInParent<MemeArena.Players.PlayerMovement>();
+            var tid = other.GetComponentInParent<MemeArena.Utilities.TeamId>();
+            var nob = other.GetComponentInParent<NetworkObject>();
 
-            // Ensure the player has a TeamId component and belongs to this deposit zone's team.
-            var teamComponent = other.GetComponent<TeamId>();
-            if (teamComponent == null || teamComponent.team != teamId) return;
+            if (inv == null || tid == null || nob == null) return;
 
-            // Player must have an inventory to deposit.
-            var inventory = other.GetComponent<PlayerInventory>();
-            if (inventory == null) return;
-
-            // Determine how long it's been since this player last deposited coins.
-            ulong playerNetId = other.GetComponent<NetworkObject>().NetworkObjectId;
-            if (_lastDepositTime.TryGetValue(playerNetId, out float lastTime))
+            if (zoneType == ZoneType.TeamGoal)
             {
-                if (Time.time - lastTime < depositCooldown) return;
+                bool isOwnGoal = tid.teamId == teamId;
+
+                if (isOwnGoal)
+                {
+                    // Heal while in own goal
+                    if (health != null) health.Heal(Mathf.CeilToInt(healPerSecond * Time.fixedDeltaTime));
+
+                    // Start/continue deposit if has coins
+                    if (inv.Coins.Value > 0)
+                    {
+                        if (!_deposits.ContainsKey(nob))
+                        {
+                            _deposits[nob] = StartCoroutine(DepositRoutine(nob, inv));
+                        }
+                    }
+                }
+                else
+                {
+                    // Enemy on this goal -> slow while inside
+                    if (move != null) move.SetExternalSpeedMultiplier(enemySlowMultiplier);
+                }
+            }
+            // Neutral: nothing passive; contest rules can be added here
+        }
+
+        void OnTriggerExit(Collider other)
+        {
+            if (!IsServer) return;
+            var nob = other.GetComponentInParent<NetworkObject>();
+            if (nob == null) return;
+
+            // Cancel channel on exit
+            if (_deposits.TryGetValue(nob, out var co))
+            {
+                StopCoroutine(co);
+                _deposits.Remove(nob);
             }
 
-            // Withdraw coins from the player.  If none are held, nothing to deposit.
-            int coins = inventory.WithdrawCoins();
-            if (coins <= 0) return;
-
-            // Add the coins to the match score.  Only the server should modify scores.
-            if (MatchManager.Instance != null)
+            // Reset slow when leaving enemy goal
+            var move = other.GetComponentInParent<MemeArena.Players.PlayerMovement>();
+            var tid = other.GetComponentInParent<MemeArena.Utilities.TeamId>();
+            if (move != null && tid != null && zoneType == ZoneType.TeamGoal && tid.teamId != teamId)
             {
-                MatchManager.Instance.AddScore(teamId, coins);
+                move.SetExternalSpeedMultiplier(1f);
+            }
+        }
+
+        IEnumerator DepositRoutine(NetworkObject player, PlayerInventory inv)
+        {
+            // Channel time scales with coin count at start of channel
+            int coins = Mathf.Max(0, inv.Coins.Value);
+            if (coins == 0) { yield break; }
+            float channel = depositSecondsPerCoin * coins;
+
+            float t = 0f;
+            while (t < channel)
+            {
+                // Interrupt if player left or lost NetworkObject/Inventory
+                if (player == null || inv == null) yield break;
+                // Interrupt if coins changed to 0 during channel
+                if (inv.Coins.Value <= 0) yield break;
+
+                t += Time.deltaTime;
+                yield return null;
             }
 
-            // Record the deposit time to enforce the cooldown.
-            _lastDepositTime[playerNetId] = Time.time;
+            // Complete deposit
+            int deposited = inv.DepositAll();
+            if (deposited > 0 && MatchManager.Instance != null)
+            {
+                var tid = player.GetComponent<MemeArena.Utilities.TeamId>();
+                MatchManager.Instance.AddScore(tid.teamId, deposited);
+            }
+
+            _deposits.Remove(player);
         }
     }
 }
