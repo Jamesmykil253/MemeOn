@@ -1,0 +1,1 @@
+(Place networked prefabs in this folder to auto-register them at runtime via NetworkPrefabsRegistrar).

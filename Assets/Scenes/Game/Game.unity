@@ -321,7 +321,7 @@ Camera:
   m_ShutterSpeed: 0.005
   m_Aperture: 16
   m_FocusDistance: 10
-  m_FocalLength: 50
+  m_FocalLength: 10.069196
   m_BladeCount: 5
   m_Curvature: {x: 2, y: 11}
   m_BarrelClipping: 0.25
@@ -336,7 +336,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 70
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -362,13 +362,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 69609176}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalRotation: {x: 0.3288666, y: 0, z: 0, w: 0.9443764}
+  m_LocalPosition: {x: -2.06, y: 15.7, z: -15.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2088062018}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 38.4, y: 0, z: 0}
 --- !u!114 &69609180
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -426,11 +426,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 206975841182195276, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
-  offset: {x: 0, y: 5, z: -5}
+  offset: {x: 0, y: 8, z: -10}
   smooth: 0.9
   zoomSpeed: 5
   minZoom: 12
   maxZoom: 26
+  pitchDeg: 5
+  yawDeg: 0
+  rotationSource: 0
+  useTransformRotation: 0
+  lockLookAtTarget: 1
+  enableManualFreePan: 0
+  moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  jumpAction: {fileID: -2099379676528639254, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  freePanSpeed: 12
+  freeElevateSpeed: 8
+  freePanDamping: 10
+  inputDeadZone: 0.15
+  debugLogs: 1
 --- !u!114 &69609182
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -443,6 +456,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4a09922a599c48c68413349b52fd58f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  debugLogs: 0
 --- !u!1 &518559313
 GameObject:
   m_ObjectHideFlags: 0
@@ -1286,47 +1300,34 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1296336912210658751, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
+      propertyPath: AllowOwnerToParent
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1296336912210658751, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
       propertyPath: GlobalObjectIdHash
       value: 1415978706
+      objectReference: {fileID: 0}
+    - target: {fileID: 1296336912210658751, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
+      propertyPath: ActiveSceneSynchronization
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1296336912210658751, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
+      propertyPath: SceneMigrationSynchronization
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2170685497171753368, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 3134186731939640369, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
-    - {fileID: 3728221732140556871, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
+    - target: {fileID: 9013843232217487200, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
+      propertyPath: debugLogs
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2170685497171753368, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
-      insertIndex: 3
-      addedObject: {fileID: 2840638831698926350}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
---- !u!1 &2840638831698926332 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2170685497171753368, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
-  m_PrefabInstance: {fileID: 2840638831698926331}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2840638831698926350
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2840638831698926332}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4959755c0976c4e8abcee996e214d950, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  moveSpeed: 6
-  rotationSpeedDeg: 720
-  gravity: -25
-  moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  attackAction: {fileID: 1120369429361536294, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  debugLogs: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
