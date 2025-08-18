@@ -121,6 +121,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   registrar: {fileID: 7845128355446834808}
+  autoStartInEditor: 0
+  startMode: 0
 --- !u!114 &7845128355446834808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -139,6 +141,9 @@ MonoBehaviour:
   - {fileID: 164492423632609151, guid: 375497c2f70904bb5b3c1de965e75609, type: 3}
   - {fileID: 8242624005166438942, guid: 7cbf3c1704be44cbbbb969254cf8a19a, type: 3}
   - {fileID: 3830343259326340592, guid: 1c709e9fe2cfe4198ac23ded3d3b4c4a, type: 3}
+  autoLoadFromResources: 1
+  resourcesFolder: NetworkPrefabs
+  autoAssignPlayerPrefab: 1
 --- !u!114 &7640120964295765541
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -151,7 +156,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_FirstSelected: {fileID: 0}
+  m_FirstSelected: {fileID: 2170685497171753368, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
 --- !u!114 &2476993181109910814

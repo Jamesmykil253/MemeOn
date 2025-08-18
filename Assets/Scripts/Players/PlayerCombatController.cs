@@ -11,6 +11,7 @@ namespace MemeArena.Players
     /// convention that server RPC methods end with the suffix "ServerRpc".
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
+    [RequireComponent(typeof(MemeArena.Combat.BoostedAttackTracker))]
     public class PlayerCombatController : NetworkBehaviour
     {
         [Tooltip("Projectile prefab to spawn when firing.")]
@@ -18,8 +19,22 @@ namespace MemeArena.Players
 
         [Tooltip("Damage dealt by each projectile.")]
         public int damage = 10;
+    [Header("Boosted Attack (optional)")]
+    [Tooltip("If enabled, after a number of normal shots the next shot will be boosted.")]
+    public bool enableBoostedCycle = true;
+    [Tooltip("Number of normal shots before granting a boosted shot (e.g., 3 → every third grants boost for the next).")]
+    public int shotsBeforeBoost = 3;
+    [Tooltip("Additional damage applied to the boosted shot.")]
+    public int boostedDamageBonus = 10;
     [Header("Debugging")]
     [SerializeField] private bool debugLogs = false;
+    [SerializeField] private bool auditLogs = true;
+
+        private MemeArena.Combat.BoostedAttackTracker _boost;
+        private int _sinceLastBoost;
+        private int _auditFireCount;
+        private int _auditBoostGrantedCount;
+        private int _auditBoostConsumedCount;
 
         /// <summary>
         /// Requests the server to fire a projectile.  This RPC must be called on
@@ -41,6 +56,38 @@ namespace MemeArena.Players
             {
                 Debug.Log($"PlayerCombatController(Server): Fire requested by {rpcParams.Receive.SenderClientId}, owner={OwnerClientId}");
             }
+            if (auditLogs) { _auditFireCount++; Debug.Log($"AUDIT PlayerCombat(Server): Fire RPC accepted count={_auditFireCount}"); }
+
+            // Compute damage with optional boosted logic
+            int dmgToUse = damage;
+            if (enableBoostedCycle)
+            {
+                if (_boost == null) _boost = GetComponent<MemeArena.Combat.BoostedAttackTracker>();
+                if (_boost != null)
+                {
+                    if (_boost.IsBoosted)
+                    {
+                        // Consume boost on this shot
+                        dmgToUse = Mathf.Max(0, damage + boostedDamageBonus);
+                        _boost.SetBoosted(false);
+                        _sinceLastBoost = 0;
+                        _auditBoostConsumedCount++;
+                        if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boosted CONSUMED count={_auditBoostConsumedCount} dmg={dmgToUse}");
+                    }
+                    else
+                    {
+                        _sinceLastBoost = Mathf.Clamp(_sinceLastBoost + 1, 0, 1000000);
+                        if (shotsBeforeBoost > 0 && _sinceLastBoost >= shotsBeforeBoost)
+                        {
+                            // After the threshold, grant boost for the NEXT shot
+                            _boost.SetBoosted(true);
+                            _sinceLastBoost = 0;
+                            _auditBoostGrantedCount++;
+                            if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boost GRANTED count={_auditBoostGrantedCount}");
+                        }
+                    }
+                }
+            }
 
             // Spawn the projectile in front of the player.  Adjust the spawn offset
             // as needed to match the muzzle position on your character model.
@@ -52,10 +99,11 @@ namespace MemeArena.Players
                 proj = go.AddComponent<ProjectileServer>();
             }
             // Initialise the projectile with the firing direction, owner, damage, speed and lifetime.
-            proj.Launch(gameObject, damage, 22f, 3f);
+            proj.Launch(gameObject, dmgToUse, 22f, 3f);
             var netObj = go.GetComponent<NetworkObject>();
             if (debugLogs) Debug.Log("PlayerCombatController(Server): Spawning projectile NetworkObject");
             netObj?.Spawn();
+            if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Projectile spawned dmg={dmgToUse} pos={spawnPos}");
         }
     }
 }

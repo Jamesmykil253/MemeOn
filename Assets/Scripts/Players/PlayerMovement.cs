@@ -51,6 +51,12 @@ namespace MemeArena.Players
     public float doubleJumpApexBonus = 0.75f;
     [Tooltip("Seconds after upward velocity crosses zero that still count as apex window.")]
     public float apexWindowSeconds = 0.12f;
+    [Header("Audit Logs")]
+    [SerializeField] bool auditLogs = true;
+    int _auditJumpPressCount;
+    int _auditAttackPressCount;
+    int _auditAttackSentCount;
+    int _serverJumpAcceptedCount;
     [Header("Debug")]
     [SerializeField] bool debugLogs = false;
     [SerializeField] bool verboseMovement = false;
@@ -153,11 +159,21 @@ namespace MemeArena.Players
                 {
                     _fireCooldownTimer -= Time.fixedDeltaTime;
                     bool pressed = attackAction != null ? attackAction.action.WasPressedThisFrame() : _attackFallback.WasPressedThisFrame();
+                    if (pressed && auditLogs)
+                    {
+                        _auditAttackPressCount++;
+                        Debug.Log($"AUDIT PlayerMovement(Client): Attack pressed count={_auditAttackPressCount} cooldown={(Mathf.Max(0f,_fireCooldownTimer)):F2}");
+                    }
                     if (pressed && _fireCooldownTimer <= 0f)
                     {
                         var combat = GetComponent<PlayerCombatController>();
+                        if (auditLogs) { _auditAttackSentCount++; Debug.Log($"AUDIT PlayerMovement(Client): Attack sent via RPC count={_auditAttackSentCount}"); }
                         combat?.FireServerRpc();
                         _fireCooldownTimer = 0.2f;
+                    }
+                    else if (pressed && _fireCooldownTimer > 0f && auditLogs)
+                    {
+                        Debug.Log($"AUDIT PlayerMovement(Client): Attack blocked by cooldown remaining={_fireCooldownTimer:F2}s");
                     }
                 }
 
@@ -167,6 +183,7 @@ namespace MemeArena.Players
                 else if (_jumpFallback != null) jumpPressed = _jumpFallback.WasPressedThisFrame();
                 if (jumpPressed)
                 {
+                    if (auditLogs) { _auditJumpPressCount++; Debug.Log($"AUDIT PlayerMovement(Client): Jump pressed count={_auditJumpPressCount}"); }
                     RequestJumpServerRpc();
                 }
             }
@@ -272,14 +289,23 @@ namespace MemeArena.Players
         {
             _serverVelocity.y = jumpVel;
             _canDoubleJump = true; // allow one more in air
-            if (debugLogs) Debug.Log("PlayerMovement(Server): Jump (ground)");
+            _serverJumpAcceptedCount++;
+            if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerMovement(Server): Jump accepted (ground) total={_serverJumpAcceptedCount}");
         }
         else if (_canDoubleJump)
         {
             float bonus = _apexWindowOpen ? Mathf.Sqrt(2f * g * Mathf.Max(0f, doubleJumpApexBonus)) : 0f;
             _serverVelocity.y = doubleBaseVel + bonus;
             _canDoubleJump = false;
-            if (debugLogs) Debug.Log("PlayerMovement(Server): Double jump");
+            _serverJumpAcceptedCount++;
+            if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerMovement(Server): Jump accepted (double) apexWindow={_apexWindowOpen} total={_serverJumpAcceptedCount}");
+        }
+        else
+        {
+            if (debugLogs || auditLogs)
+            {
+                Debug.Log($"AUDIT PlayerMovement(Server): Jump rejected grounded={_cc.isGrounded} canDouble={_canDoubleJump} velY={_serverVelocity.y:F2}");
+            }
         }
     }
 

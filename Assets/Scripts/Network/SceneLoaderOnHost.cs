@@ -17,13 +17,27 @@ namespace MemeArena.Networking
         {
             var nm = NetworkManager.Singleton;
             if (!nm) return;
+            nm.OnServerStarted += HandleServerStarted;
+            // If server already started (e.g., autoStart in another Start), load immediately
             if (nm.IsServer)
             {
-                if (!string.IsNullOrEmpty(gameplaySceneName))
-                {
-                    nm.SceneManager.LoadScene(gameplaySceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
-                }
+                HandleServerStarted();
             }
+        }
+
+        void OnDestroy()
+        {
+            var nm = NetworkManager.Singleton;
+            if (!nm) return;
+            nm.OnServerStarted -= HandleServerStarted;
+        }
+
+        private void HandleServerStarted()
+        {
+            var nm = NetworkManager.Singleton;
+            if (!nm || !nm.IsServer) return;
+            if (string.IsNullOrEmpty(gameplaySceneName)) return;
+            nm.SceneManager.LoadScene(gameplaySceneName, UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
     }
 }
