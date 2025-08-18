@@ -19,6 +19,8 @@ namespace MemeArena.Players
 
         [Tooltip("Damage dealt by each projectile.")]
         public int damage = 10;
+    [Tooltip("Optional: Melee weapon component to perform basic melee swings on server.")]
+    public MemeArena.Combat.MeleeWeaponServer meleeWeapon;
     [Header("Boosted Attack (optional)")]
     [Tooltip("If enabled, after a number of normal shots the next shot will be boosted.")]
     public bool enableBoostedCycle = true;
@@ -60,6 +62,7 @@ namespace MemeArena.Players
 
             // Compute damage with optional boosted logic
             int dmgToUse = damage;
+            bool wasBoostedShot = false;
             if (enableBoostedCycle)
             {
                 if (_boost == null) _boost = GetComponent<MemeArena.Combat.BoostedAttackTracker>();
@@ -72,6 +75,7 @@ namespace MemeArena.Players
                         _boost.SetBoosted(false);
                         _sinceLastBoost = 0;
                         _auditBoostConsumedCount++;
+                        wasBoostedShot = true;
                         if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boosted CONSUMED count={_auditBoostConsumedCount} dmg={dmgToUse}");
                     }
                     else
@@ -84,26 +88,58 @@ namespace MemeArena.Players
                             _sinceLastBoost = 0;
                             _auditBoostGrantedCount++;
                             if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boost GRANTED count={_auditBoostGrantedCount}");
+                            SetBoostReadyClientRpc(true);
                         }
                     }
                 }
             }
 
-            // Spawn the projectile in front of the player.  Adjust the spawn offset
-            // as needed to match the muzzle position on your character model.
-            Vector3 spawnPos = transform.position + transform.forward * 0.6f + Vector3.up * 0.8f;
-            var go = Instantiate(projectilePrefab, spawnPos, transform.rotation);
-            var proj = go.GetComponent<ProjectileServer>();
-            if (proj == null)
+            bool didMelee = false;
+            // Try melee first if available
+            if (meleeWeapon != null)
             {
-                proj = go.AddComponent<ProjectileServer>();
+                didMelee = meleeWeapon.PerformSwing(gameObject);
+                if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Melee swing attempted hit={didMelee}");
             }
-            // Initialise the projectile with the firing direction, owner, damage, speed and lifetime.
-            proj.Launch(gameObject, dmgToUse, 22f, 3f);
-            var netObj = go.GetComponent<NetworkObject>();
-            if (debugLogs) Debug.Log("PlayerCombatController(Server): Spawning projectile NetworkObject");
-            netObj?.Spawn();
-            if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Projectile spawned dmg={dmgToUse} pos={spawnPos}");
+
+            // Then ranged (projectile) if prefab is assigned
+            if (projectilePrefab != null)
+            {
+                Vector3 spawnPos = transform.position + transform.forward * 0.6f + Vector3.up * 0.8f;
+                var go = Instantiate(projectilePrefab, spawnPos, transform.rotation);
+                var proj = go.GetComponent<ProjectileServer>();
+                if (proj == null)
+                {
+                    proj = go.AddComponent<ProjectileServer>();
+                }
+                // Initialise the projectile with the firing direction, owner, damage, speed and lifetime.
+                proj.Launch(gameObject, dmgToUse, 22f, 3f);
+                var netObj = go.GetComponent<NetworkObject>();
+                if (debugLogs) Debug.Log("PlayerCombatController(Server): Spawning projectile NetworkObject");
+                netObj?.Spawn();
+                if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Projectile spawned dmg={dmgToUse} pos={spawnPos}");
+            }
+
+            // Visual: flash attack color on clients; if boosted shot, flash boosted variant and clear boost-ready persistent
+            FlashAttackClientRpc(wasBoostedShot);
+            if (wasBoostedShot)
+            {
+                SetBoostReadyClientRpc(false);
+            }
+        }
+
+        [ClientRpc]
+        private void FlashAttackClientRpc(bool boostedShot)
+        {
+            var sync = GetComponent<MemeArena.Debugging.PlayerStateColorSync>();
+            sync?.FlashAttack(boostedShot);
+        }
+
+        [ClientRpc]
+        private void SetBoostReadyClientRpc(bool ready)
+        {
+            var sync = GetComponent<MemeArena.Debugging.PlayerStateColorSync>();
+            sync?.SetBoostReady(ready);
         }
     }
 }

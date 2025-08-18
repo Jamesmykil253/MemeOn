@@ -46,6 +46,7 @@ namespace MemeArena.Combat
             {
                 _currentHealth.Value = maxHealth; // sets and replicates to clients
                 OnHealthChanged?.Invoke(_currentHealth.Value, maxHealth);
+                OnDeath += OnDeathServer;
             }
             // Clients will receive an OnValueChanged when the server replication arrives;
             // avoid firing OnHealthChanged here with an uninitialized (0) value.
@@ -55,6 +56,7 @@ namespace MemeArena.Combat
         {
             base.OnDestroy();
             _currentHealth.OnValueChanged -= OnHealthValueChanged;
+            if (IsServer) OnDeath -= OnDeathServer;
         }
 
         private void OnHealthValueChanged(int previous, int current)
@@ -80,6 +82,19 @@ namespace MemeArena.Combat
             {
                 OnDeath?.Invoke();
             }
+        }
+
+        private void OnDeathServer()
+        {
+            if (!IsServer) return;
+            SetDeadClientRpc();
+        }
+
+        [ClientRpc]
+        private void SetDeadClientRpc()
+        {
+            var sync = GetComponent<MemeArena.Debugging.PlayerStateColorSync>();
+            if (sync != null) sync.SetDead();
         }
 
         /// <summary>

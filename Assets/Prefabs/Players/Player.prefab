@@ -77,6 +77,7 @@ GameObject:
   - component: {fileID: 6685075448151022026}
   - component: {fileID: 8554240275179364057}
   - component: {fileID: -9147115012238173897}
+  - component: {fileID: 6951835581863184312}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -176,9 +177,18 @@ MonoBehaviour:
   doubleJumpHeight: 1
   doubleJumpApexBonus: 0.75
   apexWindowSeconds: 0.12
+  enableJumpAssist: 0
+  coyoteTimeSeconds: 0.1
+  jumpBufferSeconds: 0.1
   auditLogs: 1
   debugLogs: 1
   verboseMovement: 0
+  snapToGroundOnSpawn: 1
+  snapSkinOffset: 0.05
+  maxGroundSnapDistance: 100
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!114 &7330676258798695526
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -440,6 +450,29 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 0
   SlerpPosition: 1
+--- !u!114 &6951835581863184312
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2170685497171753368}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f40d977dc0ffd4088acdb5013aab5e52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  targetRenderer: {fileID: 735739966014345678}
+  groundedColor: {r: 0, g: 1, b: 0, a: 1}
+  airborneColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  jumpColor: {r: 0, g: 0, b: 1, a: 1}
+  doubleJumpColor: {r: 1, g: 0, b: 1, a: 1}
+  attackColor: {r: 1, g: 0.5, b: 0, a: 1}
+  boostedReadyColor: {r: 1, g: 0.84, b: 0, a: 1}
+  deadColor: {r: 0, g: 0, b: 0, a: 1}
+  attackFlashSeconds: 0.12
+  jumpFlashSeconds: 0.1
 --- !u!1 &4613641378409642606
 GameObject:
   m_ObjectHideFlags: 0
