@@ -28,7 +28,7 @@ namespace MemeArena.Items
 
             // Explicitly use Players.PlayerInventory to avoid resolving to Items.PlayerInventory
             var inv = other.GetComponentInParent<MemeArena.Players.PlayerInventory>();
-            if (inv != null && other.CompareTag("Player"))
+            if (inv != null)
             {
                 inv.AddCoins(1);
                 // Notify spawner before despawn so it can schedule a respawn

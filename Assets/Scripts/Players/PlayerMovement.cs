@@ -12,6 +12,7 @@ namespace MemeArena.Players
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(NetworkTransform))]
+    [DisallowMultipleComponent]
     public class PlayerMovement : NetworkBehaviour
     {
         [Header("Movement")]
@@ -64,12 +65,15 @@ namespace MemeArena.Players
                 var ctrl = GetComponent<PlayerController>();
                 if (ctrl != null)
                 {
-                    Debug.LogWarning("PlayerMovement: PlayerController also present. Disable one movement script to avoid conflicts.");
+                    Debug.LogWarning("PlayerMovement: PlayerController also present. Disabling legacy controller to avoid conflicts.");
+                    ctrl.enabled = false;
                 }
-                // Warn if no NetworkTransform present (string lookup avoids hard dependency)
-                if (GetComponent("NetworkTransform") == null)
+                // Ensure NetworkTransform exists for replication; add at runtime if missing.
+                var nt = GetComponent<Unity.Netcode.Components.NetworkTransform>();
+                if (nt == null)
                 {
-                    Debug.LogWarning("PlayerMovement: No NetworkTransform detected. Client-side won’t see server movement. Add Unity.Netcode.Components.NetworkTransform to the player prefab.");
+                    nt = gameObject.AddComponent<Unity.Netcode.Components.NetworkTransform>();
+                    Debug.LogWarning("PlayerMovement: NetworkTransform was missing; added at runtime for movement sync. Please add it to the prefab.");
                 }
             }
 
@@ -156,7 +160,7 @@ namespace MemeArena.Players
         }
 
     [ServerRpc]
-        void SubmitInputServerRpc(Vector2 move, float dt)
+        public void SubmitInputServerRpc(Vector2 move, float dt)
         {
             _lastClientMove = move;
             if (debugLogs && !_loggedServerNonZero && move.sqrMagnitude > 0.0001f)

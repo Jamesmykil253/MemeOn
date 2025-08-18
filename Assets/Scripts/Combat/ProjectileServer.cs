@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using MemeArena.Network;
 using MemeArena.AI;
 
@@ -14,6 +15,7 @@ namespace MemeArena.Combat
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(Collider))]
+    [RequireComponent(typeof(NetworkTransform))]
     public class ProjectileServer : NetworkBehaviour
     {
         [Tooltip("Units per second that this projectile travels.")]
@@ -63,10 +65,10 @@ namespace MemeArena.Combat
             if (!IsServer) return;
             // Ignore collisions with self or owner.
             if (other.gameObject == gameObject) return;
-            // Check for health component.
-            NetworkHealth health = other.GetComponent<NetworkHealth>();
-            HealthNetwork healthLegacy = other.GetComponent<HealthNetwork>();
-            TeamId targetTeam = other.GetComponent<TeamId>();
+            // Check for health component on parent chains to support child hitboxes.
+            NetworkHealth health = other.GetComponentInParent<NetworkHealth>();
+            HealthNetwork healthLegacy = other.GetComponentInParent<HealthNetwork>();
+            TeamId targetTeam = other.GetComponentInParent<TeamId>();
             if ((health != null || healthLegacy != null) && targetTeam != null)
             {
                 // Only hit opposing teams.

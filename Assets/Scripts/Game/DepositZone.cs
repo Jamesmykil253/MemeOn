@@ -31,32 +31,31 @@ namespace MemeArena.Game
         readonly System.Collections.Generic.Dictionary<NetworkObject, Coroutine> _deposits
             = new System.Collections.Generic.Dictionary<NetworkObject, Coroutine>();
 
-        void OnTriggerStay(Collider other)
+        private void OnTriggerStay(Collider other)
         {
             if (!IsServer) return;
 
-            var inv = other.GetComponentInParent<MemeArena.Players.PlayerInventory>();
-            var healthLegacy = other.GetComponentInParent<HealthNetwork>();
-            var healthNet = other.GetComponentInParent<MemeArena.Combat.NetworkHealth>();
+            // Work with parent objects to be robust to child colliders
+            var nob = other.GetComponentInParent<NetworkObject>();
+            if (nob == null) return;
             var move = other.GetComponentInParent<MemeArena.Players.PlayerMovement>();
             var tid = other.GetComponentInParent<MemeArena.Network.TeamId>();
-            var nob = other.GetComponentInParent<NetworkObject>();
+            var inv = other.GetComponentInParent<MemeArena.Players.PlayerInventory>();
+            var health = other.GetComponentInParent<MemeArena.Combat.NetworkHealth>();
 
-            if (inv == null || tid == null || nob == null) return;
-
-            if (zoneType == ZoneType.TeamGoal)
+            if (zoneType == ZoneType.TeamGoal && tid != null)
             {
-                bool isOwnGoal = tid.team == teamId;
-
-                if (isOwnGoal)
+                if (tid.team == teamId)
                 {
-                    // Heal while in own goal
-                    int heal = Mathf.CeilToInt(healPerSecond * Time.fixedDeltaTime);
-                    if (healthNet != null) healthNet.Heal(heal);
-                    else if (healthLegacy != null) healthLegacy.Heal(heal);
+                    // heal friends over time using frame delta because OnTriggerStay is per-frame
+                    if (health != null)
+                    {
+                        int amt = Mathf.CeilToInt(healPerSecond * Time.deltaTime);
+                        if (amt > 0) health.Heal(amt);
+                    }
 
                     // Start/continue deposit if has coins
-                    if (inv.Coins.Value > 0)
+                    if (inv != null && inv.Coins.Value > 0)
                     {
                         if (!_deposits.ContainsKey(nob))
                         {

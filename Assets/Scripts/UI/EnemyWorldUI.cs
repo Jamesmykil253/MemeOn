@@ -26,13 +26,22 @@ namespace MemeArena.UI
             if (health == null) health = GetComponentInParent<NetworkHealth>();
             if (levelProviderBehaviour == null)
             {
-                levelProviderBehaviour = GetComponentInParent<MonoBehaviour>();
-                if (levelProviderBehaviour is not ILevelProvider)
+                // Search all parents for a component implementing ILevelProvider
+                var parents = GetComponentsInParent<MonoBehaviour>(true);
+                foreach (var mb in parents)
                 {
-                    levelProviderBehaviour = null;
+                    if (mb is ILevelProvider lp)
+                    {
+                        levelProviderBehaviour = mb;
+                        levelProvider = lp;
+                        break;
+                    }
                 }
             }
-            levelProvider = levelProviderBehaviour as ILevelProvider;
+            else
+            {
+                levelProvider = levelProviderBehaviour as ILevelProvider;
+            }
 
             if (health != null)
             {

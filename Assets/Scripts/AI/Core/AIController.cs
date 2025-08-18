@@ -315,6 +315,12 @@ namespace MemeArena.AI
             {
                 proj.ownerTeam = myTeam.team;
             }
+            // Link back to this AI's NetworkObject for hit/miss callbacks
+            var myNO = GetComponent<NetworkObject>();
+            if (myNO != null)
+            {
+                proj.ownerObjectId = myNO.NetworkObjectId;
+            }
             no.Spawn(true);
             proj.Launch();
             return true;
