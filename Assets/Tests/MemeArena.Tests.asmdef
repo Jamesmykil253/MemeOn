@@ -1,0 +1,21 @@
+{
+  "name": "MemeArena.Tests",
+  "rootNamespace": "MemeArena.Tests",
+  "references": [
+  "MemeArena.Runtime",
+  "Unity.Netcode.Runtime",
+  "Unity.TextMeshPro"
+  ],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

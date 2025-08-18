@@ -139,10 +139,7 @@ public static class DeprecatedScanner
             {
                 // Prefer modular replacement if possible: add EnemyUnitUI and try to set refs
                 var go = comp.gameObject;
-                if (go.GetComponent<MemeArena.UI.EnemyUnitUI>() == null)
-                {
-                    go.AddComponent<MemeArena.UI.EnemyUnitUI>();
-                }
+                AddIfTypeExists(go, "MemeArena.UI.EnemyUnitUI");
                 // Keep the old component disabled (don’t delete to avoid breaking serialized data unexpectedly)
                 var mb = comp as MonoBehaviour; if (mb != null) mb.enabled = false;
                 replaced++;
@@ -150,10 +147,7 @@ public static class DeprecatedScanner
             else if (typeName == "MemeArena.Items.LegacyPlayerInventory")
             {
                 var root = (comp as Component).gameObject;
-                if (root.GetComponent<MemeArena.Players.PlayerInventory>() == null)
-                {
-                    root.AddComponent<MemeArena.Players.PlayerInventory>();
-                }
+                AddIfTypeExists(root, "MemeArena.Players.PlayerInventory");
                 // Keep legacy disabled
                 var mb = comp as MonoBehaviour; if (mb != null) mb.enabled = false;
                 replaced++;
@@ -162,10 +156,7 @@ public static class DeprecatedScanner
             {
                 var go = comp.gameObject;
                 // Add canonical binder if missing
-                if (go.GetComponent<MemeArena.HUD.PlayerHUDBinder>() == null)
-                {
-                    go.AddComponent<MemeArena.HUD.PlayerHUDBinder>();
-                }
+                AddIfTypeExists(go, "MemeArena.HUD.PlayerHUDBinder");
                 // Disable deprecated alias to avoid double binding
                 var mb = comp as MonoBehaviour; if (mb != null) mb.enabled = false;
                 replaced++;
@@ -174,10 +165,7 @@ public static class DeprecatedScanner
             {
                 var go = comp.gameObject;
                 // Add canonical AIController if missing
-                if (go.GetComponent<MemeArena.AI.AIController>() == null)
-                {
-                    go.AddComponent<MemeArena.AI.AIController>();
-                }
+                AddIfTypeExists(go, "MemeArena.AI.AIController");
                 // Disable legacy alias
                 var mb = comp as MonoBehaviour; if (mb != null) mb.enabled = false;
                 replaced++;
@@ -215,6 +203,20 @@ public static class DeprecatedScanner
         }
         names.Reverse();
         return string.Join("/", names);
+    }
+
+    private static void AddIfTypeExists(GameObject go, string fullTypeName)
+    {
+        var t = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
+            .FirstOrDefault(x => x.FullName == fullTypeName);
+        if (t != null && typeof(Component).IsAssignableFrom(t))
+        {
+            if (go.GetComponent(t) == null)
+            {
+                go.AddComponent(t);
+            }
+        }
     }
 }
 #endif

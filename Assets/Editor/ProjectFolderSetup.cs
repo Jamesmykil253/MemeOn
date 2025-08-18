@@ -11,8 +11,28 @@ public static class ProjectFolderSetup
     {
         string[] folders = new string[]
         {
-            "Assets/Scenes","Assets/Scripts","Assets/Scripts/Core","Assets/Scripts/AI","Assets/Scripts/Combat","Assets/Scripts/Debug",
-            "Assets/Art","Assets/Prefabs","Assets/Prefabs/AI","Assets/Prefabs/Projectiles","Assets/Prefabs/Players","Assets/Resources","Assets/Settings","Assets/Editor"
+            // Core
+            "Assets/Scenes",
+            "Assets/Scripts",
+            "Assets/Scripts/Core",
+            "Assets/Scripts/AI",
+            "Assets/Scripts/Combat",
+            "Assets/Scripts/Debug",
+            "Assets/Art",
+            "Assets/Resources",
+            "Assets/Settings",
+            "Assets/Editor",
+            "Assets/Tests",
+
+            // Canonical prefab locations used by auditors/builders
+            "Assets/Resources/NetworkPrefabs",
+            "Assets/Prefabs",
+            "Assets/Prefabs/Players",
+            "Assets/Prefabs/AI",
+            "Assets/Prefabs/Projectiles",
+            "Assets/Prefabs/UI",
+            "Assets/Prefabs/UI/World",
+            "Assets/Prefabs/Misc",
         };
         foreach (var f in folders) EnsureFolder(f);
         AssetDatabase.SaveAssets();

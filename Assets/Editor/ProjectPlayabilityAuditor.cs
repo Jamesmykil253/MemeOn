@@ -63,28 +63,28 @@ namespace MemeArena.EditorTools
                 fixes++;
             }
 
-            // NetworkGameManager + registrar
-            var ngm = UnityEngine.Object.FindFirstObjectByType<MemeArena.Networking.NetworkGameManager>(FindObjectsInactive.Exclude);
-            if (ngm == null)
+            // NetworkGameManager + registrar (reflection-based to avoid compile-time coupling)
+            var ngmComp = FindFirstComponentByFullName("MemeArena.Networking.NetworkGameManager");
+            if (ngmComp == null)
             {
                 var go = new GameObject("NetworkGame");
-                ngm = go.AddComponent<MemeArena.Networking.NetworkGameManager>();
-                var registrar = go.AddComponent<MemeArena.Networking.NetworkPrefabsRegistrar>();
-                ngm.registrar = registrar;
+                AddIfTypeExists(go, "MemeArena.Networking.NetworkGameManager");
+                AddIfTypeExists(go, "MemeArena.Networking.NetworkPrefabsRegistrar");
+                TryWireRegistrar(go);
                 Undo.RegisterCreatedObjectUndo(go, "Create NetworkGameManager");
                 report.AppendLine("Added NetworkGameManager + NetworkPrefabsRegistrar.");
                 fixes++;
             }
 
             // SceneLoaderOnHost
-            var loader = UnityEngine.Object.FindFirstObjectByType<MemeArena.Networking.SceneLoaderOnHost>(FindObjectsInactive.Exclude);
-            if (loader == null)
+            var loaderComp = FindFirstComponentByFullName("MemeArena.Networking.SceneLoaderOnHost");
+            if (loaderComp == null)
             {
-                loader = ngm != null ? ngm.gameObject.AddComponent<MemeArena.Networking.SceneLoaderOnHost>()
-                                      : new GameObject("SceneLoader").AddComponent<MemeArena.Networking.SceneLoaderOnHost>();
-                loader.gameplaySceneName = FindGameplaySceneName() ?? loader.gameplaySceneName;
-                Undo.RegisterCreatedObjectUndo(loader.gameObject, "Create SceneLoaderOnHost");
-                report.AppendLine($"Added SceneLoaderOnHost (gameplay='{loader.gameplaySceneName}').");
+                GameObject hostGo = ngmComp != null ? ngmComp.gameObject : new GameObject("SceneLoader");
+                AddIfTypeExists(hostGo, "MemeArena.Networking.SceneLoaderOnHost");
+                TrySetStringField(hostGo, "MemeArena.Networking.SceneLoaderOnHost", "gameplaySceneName", FindGameplaySceneName());
+                Undo.RegisterCreatedObjectUndo(hostGo, "Create SceneLoaderOnHost");
+                report.AppendLine($"Added SceneLoaderOnHost (gameplay='{FindGameplaySceneName()}').");
                 fixes++;
             }
 
@@ -106,7 +106,8 @@ namespace MemeArena.EditorTools
 
             // HUD in scene
             bool hudPresent = UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                                     .Any(c => c.GetComponent<MemeArena.HUD.PlayerHUDBinder>() != null);
+                                     .Any(c => c.GetComponentsInChildren<MonoBehaviour>(true)
+                                                .Any(mb => mb != null && mb.GetType().FullName == "MemeArena.HUD.PlayerHUDBinder"));
             if (!hudPresent)
             {
                 var hud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/UI.prefab");
@@ -174,6 +175,48 @@ namespace MemeArena.EditorTools
             var mi = t.GetMethod(methodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
             if (mi == null) return false;
             try { mi.Invoke(null, null); return true; } catch { return false; }
+        }
+
+        private static Component FindFirstComponentByFullName(string fullTypeName)
+        {
+            var all = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (var mb in all)
+            {
+                if (mb == null) continue;
+                var t = mb.GetType();
+                if (t != null && t.FullName == fullTypeName) return mb;
+            }
+            return null;
+        }
+
+        private static void TryWireRegistrar(GameObject go)
+        {
+            var asmTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } });
+            var ngmType = asmTypes.FirstOrDefault(t => t.FullName == "MemeArena.Networking.NetworkGameManager");
+            var regType = asmTypes.FirstOrDefault(t => t.FullName == "MemeArena.Networking.NetworkPrefabsRegistrar");
+            if (ngmType == null || regType == null) return;
+            var ngm = go.GetComponent(ngmType);
+            var reg = go.GetComponent(regType) ?? go.AddComponent(regType);
+            if (ngm == null || reg == null) return;
+            var fld = ngmType.GetField("registrar", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (fld != null && fld.FieldType == regType)
+            {
+                fld.SetValue(ngm, reg);
+            }
+        }
+
+        private static void TrySetStringField(GameObject go, string fullTypeName, string fieldName, string value)
+        {
+            if (string.IsNullOrEmpty(value)) return;
+            var t = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } }).FirstOrDefault(x => x.FullName == fullTypeName);
+            if (t == null) return;
+            var comp = go.GetComponent(t);
+            if (comp == null) return;
+            var fld = t.GetField(fieldName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            if (fld != null && fld.FieldType == typeof(string))
+            {
+                fld.SetValue(comp, value);
+            }
         }
     }
 }

@@ -29,12 +29,6 @@ namespace MemeArena.Players
     public InputActionReference attackAction; // Button action ("Attack")
     public InputActionReference jumpAction; // Button action ("Jump")
 
-        // Fallback when InputActionReferences are not wired in the inspector.
-        InputSystem_Actions _actions; // generated class from Assets/InputSystem_Actions.inputactions
-        InputAction _moveFallback;
-    InputAction _attackFallback;
-    InputAction _jumpFallback;
-
         CharacterController _cc;
         Vector3 _serverVelocity;
         Vector2 _lastClientMove;
@@ -98,17 +92,6 @@ namespace MemeArena.Players
                 if (attackAction != null) attackAction.action.Enable();
                 if (jumpAction != null) jumpAction.action.Enable();
 
-                // Auto-bind fallback if references are missing
-                if (moveAction == null || attackAction == null || jumpAction == null)
-                {
-                    _actions = new InputSystem_Actions();
-                    _actions.Player.Enable();
-                    if (moveAction == null) _moveFallback = _actions.Player.Move;
-                    if (attackAction == null) _attackFallback = _actions.Player.Attack;
-                    if (jumpAction == null) _jumpFallback = _actions.Player.Jump;
-                    Debug.Log("PlayerMovement: Using auto-bound InputSystem_Actions fallback.");
-                }
-
                 // Legacy PlayerController has been deprecated; no need to check/disable here.
                 // Ensure NetworkTransform exists for replication; add at runtime if missing.
                 var nt = GetComponent<Unity.Netcode.Components.NetworkTransform>();
@@ -147,15 +130,6 @@ namespace MemeArena.Players
                 if (moveAction != null) moveAction.action.Disable();
                 if (attackAction != null) attackAction.action.Disable();
                 if (jumpAction != null) jumpAction.action.Disable();
-                if (_actions != null)
-                {
-                    _actions.Player.Disable();
-                    _actions.Dispose();
-                    _actions = null;
-                    _moveFallback = null;
-                    _attackFallback = null;
-                    _jumpFallback = null;
-                }
             }
         }
 
@@ -166,18 +140,18 @@ namespace MemeArena.Players
     {
         if (!IsOwner) return;
         // Capture button presses in Update for maximum responsiveness
-        if (attackAction != null || _attackFallback != null)
+        if (attackAction != null)
         {
-            bool pressed = attackAction != null ? attackAction.action.WasPressedThisFrame() : _attackFallback.WasPressedThisFrame();
+            bool pressed = attackAction.action.WasPressedThisFrame();
             if (pressed)
             {
                 _attackBufferTimer = 0.15f; // small buffer allows FixedUpdate to catch it
                 if (auditLogs) { _auditAttackPressCount++; Debug.Log($"AUDIT PlayerMovement(Client): Attack pressed count={_auditAttackPressCount} (Update)"); }
             }
         }
-        if (jumpAction != null || _jumpFallback != null)
+        if (jumpAction != null)
         {
-            bool pressed = jumpAction != null ? jumpAction.action.WasPressedThisFrame() : _jumpFallback.WasPressedThisFrame();
+            bool pressed = jumpAction.action.WasPressedThisFrame();
             if (pressed)
             {
                 _jumpBufferClientTimer = 0.15f;
@@ -190,7 +164,7 @@ namespace MemeArena.Players
         {
             if (IsOwner)
             {
-        var mv = moveAction != null ? moveAction.action.ReadValue<Vector2>() : (_moveFallback != null ? _moveFallback.ReadValue<Vector2>() : Vector2.zero);
+    var mv = moveAction != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
         // Client-side filtering to reduce drift from tiny inputs (e.g., controller noise)
         if (mv.sqrMagnitude < inputDeadZone * inputDeadZone) mv = Vector2.zero;
         if (mv.sqrMagnitude > 1f) mv.Normalize();
@@ -202,7 +176,7 @@ namespace MemeArena.Players
         SubmitInputServerRpc(mv);
 
                 // Attack input: trigger a server RPC on the combat controller with a small cooldown
-                if (attackAction != null || _attackFallback != null)
+                if (attackAction != null)
                 {
                     _fireCooldownTimer -= Time.fixedDeltaTime;
                     _attackBufferTimer -= Time.fixedDeltaTime;

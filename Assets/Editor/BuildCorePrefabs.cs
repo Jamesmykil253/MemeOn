@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
 using Unity.Netcode;
+using TMPro;
 
 namespace MemeArena.EditorTools
 {
@@ -53,12 +54,13 @@ namespace MemeArena.EditorTools
 
             AddIfTypeExists(go, "Unity.Netcode.Components.NetworkTransform");
 
-            // Gameplay scripts
-            go.AddComponent<MemeArena.Players.PlayerMovement>();
-            go.AddComponent<MemeArena.Players.PlayerCombatController>();
-            go.AddComponent<MemeArena.Combat.BoostedAttackTracker>();
-            go.AddComponent<MemeArena.Combat.NetworkHealth>();
-            go.AddComponent<MemeArena.Players.PlayerInventory>();
+            // Gameplay scripts (added via reflection by full name to avoid hard refs breaking compilation)
+            AddIfTypeExists(go, "MemeArena.Players.PlayerMovement");
+            AddIfTypeExists(go, "MemeArena.Players.PlayerCombatController");
+            AddIfTypeExists(go, "MemeArena.Combat.BoostedAttackTracker");
+            AddIfTypeExists(go, "MemeArena.Combat.NetworkHealth");
+            // PlayerInventory lives under MemeArena.Players
+            AddIfTypeExists(go, "MemeArena.Players.PlayerInventory");
 
             return go;
         }
@@ -74,8 +76,8 @@ namespace MemeArena.EditorTools
             // Network + AI
             go.AddComponent<NetworkObject>();
             AddIfTypeExists(go, "Unity.Netcode.Components.NetworkTransform");
-            go.AddComponent<MemeArena.AI.AIController>();
-            go.AddComponent<MemeArena.Combat.NetworkHealth>();
+            AddIfTypeExists(go, "MemeArena.AI.AIController");
+            AddIfTypeExists(go, "MemeArena.Combat.NetworkHealth");
             // Optional: NavMeshAgent if AI uses navigation
             var agent = go.AddComponent<NavMeshAgent>();
             agent.speed = 3.5f; agent.angularSpeed = 720f; agent.stoppingDistance = 1.5f;
@@ -95,14 +97,14 @@ namespace MemeArena.EditorTools
             rt.sizeDelta = new Vector2(1.5f, 0.4f);
             rt.localPosition = new Vector3(0, 1.6f, 0);
 
-            canvas.AddComponent<MemeArena.UI.EnemyUnitUI>();
-            canvas.AddComponent<MemeArena.UI.BillboardUI>();
+            AddIfTypeExists(canvas, "MemeArena.UI.EnemyUnitUI");
+            AddIfTypeExists(canvas, "MemeArena.UI.BillboardUI");
 
             var bar = CreateBar(canvas.transform, "HealthBar", new Color(0.9f, 0.1f, 0.1f));
-            bar.AddComponent<MemeArena.UI.HealthBarUI>();
+            AddIfTypeExists(bar, "MemeArena.UI.HealthBarUI");
 
             var lvl = CreateText(canvas.transform, "LevelText", "Lv 1");
-            lvl.AddComponent<MemeArena.UI.LevelUI>();
+            AddIfTypeExists(lvl, "MemeArena.UI.LevelUI");
 
             return go;
         }
@@ -124,7 +126,7 @@ namespace MemeArena.EditorTools
             // Network + Logic
             go.AddComponent<NetworkObject>();
             AddIfTypeExists(go, "Unity.Netcode.Components.NetworkTransform");
-            go.AddComponent<MemeArena.Combat.ProjectileServer>();
+            AddIfTypeExists(go, "MemeArena.Combat.ProjectileServer");
 
             return go;
         }
@@ -133,7 +135,7 @@ namespace MemeArena.EditorTools
         {
             var go = new GameObject("MeleeHitbox");
             go.AddComponent<NetworkObject>();
-            go.AddComponent<MemeArena.Combat.MeleeWeaponServer>();
+            AddIfTypeExists(go, "MemeArena.Combat.MeleeWeaponServer");
 
             var hit = new GameObject("Hitbox");
             hit.transform.SetParent(go.transform, false);
@@ -218,16 +220,18 @@ namespace MemeArena.EditorTools
             rt.sizeDelta = new Vector2(0.6f, 0.25f);
             rt.anchoredPosition = new Vector2(0, 0.15f);
 
-            var textGO = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            // Prefer TextMeshProUGUI if available
+            var textGO = new GameObject("Text", typeof(RectTransform));
             textGO.transform.SetParent(go.transform, false);
-            var txt = textGO.GetComponent<Text>();
-            txt.text = text;
-            txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = Color.white;
-            txt.fontSize = 18;
-            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var trt = (RectTransform)textGO.transform;
             trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.offsetMin = Vector2.zero; trt.offsetMax = Vector2.zero;
+
+            var tmp = textGO.AddComponent<TextMeshProUGUI>();
+            tmp.text = text;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = Color.white;
+            tmp.fontSize = 18;
+
             return go;
         }
     }

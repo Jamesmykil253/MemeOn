@@ -83,6 +83,299 @@ namespace MemeArena.EditorTools
             }
         }
 
+        [MenuItem("Tools/MemeArena/Clean Prefab Duplicates...")]
+        public static void CleanPrefabDuplicatesMenu()
+        {
+            // 1) Gather all prefabs grouped by filename
+            var guids = AssetDatabase.FindAssets("t:Prefab");
+            var nameToPaths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var guid in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path)) continue;
+                if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
+                var name = Path.GetFileName(path);
+                if (!nameToPaths.TryGetValue(name, out var list))
+                {
+                    list = new List<string>();
+                    nameToPaths[name] = list;
+                }
+                list.Add(path);
+            }
+
+            // 2) Build duplicate sets and decide keepers
+            var duplicateSets = nameToPaths
+                .Where(kvp => kvp.Value.Count > 1)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            if (duplicateSets.Count == 0)
+            {
+                EditorUtility.DisplayDialog("Clean Prefab Duplicates", "No duplicate prefab filenames found.", "OK");
+                return;
+            }
+
+            // Helpers for keeper selection
+            string GetCanonicalPathFor(string filename)
+            {
+                var cp = Canonical.FirstOrDefault(c => c.name.Equals(filename, StringComparison.OrdinalIgnoreCase));
+                return cp?.canonicalPath;
+            }
+
+            string ChooseKeeper(string filename, List<string> paths)
+            {
+                var canonical = GetCanonicalPathFor(filename);
+                if (!string.IsNullOrEmpty(canonical) && paths.Any(p => PathsEqual(p, canonical)))
+                {
+                    return paths.First(p => PathsEqual(p, canonical));
+                }
+
+                // Prefer the path that already matches its designated location
+                foreach (var p in paths)
+                {
+                    var go = AssetDatabase.LoadAssetAtPath<GameObject>(p);
+                    if (go == null) continue;
+                    var target = ComputeDesignatedPath(go, p);
+                    if (!string.IsNullOrEmpty(target) && PathsEqual(p, target)) return p;
+                }
+
+                // Prefer Resources/NetworkPrefabs, then Prefabs/
+                var prefer = paths.FirstOrDefault(p => p.StartsWith("Assets/Resources/NetworkPrefabs/", StringComparison.OrdinalIgnoreCase))
+                             ?? paths.FirstOrDefault(p => p.StartsWith("Assets/Prefabs/", StringComparison.OrdinalIgnoreCase))
+                             ?? paths[0];
+                return prefer;
+            }
+
+            string HashFile(string path)
+            {
+                try
+                {
+                    var full = Path.GetFullPath(path);
+                    using (var stream = File.OpenRead(full))
+                    {
+                        using (var md5 = System.Security.Cryptography.MD5.Create())
+                        {
+                            var hash = md5.ComputeHash(stream);
+                            return BitConverter.ToString(hash).Replace("-", string.Empty);
+                        }
+                    }
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+
+            // 3) Partition duplicates into exact duplicates (same hash) vs conflicts
+            var toCheckReferences = new List<string>();
+            var exactDupesByKeeper = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            var conflicts = new List<(string filename, List<string> paths)>();
+
+            foreach (var kvp in duplicateSets)
+            {
+                var filename = kvp.Key;
+                var paths = kvp.Value;
+                var keeper = ChooseKeeper(filename, paths);
+                var keeperHash = HashFile(keeper);
+                var exactDupes = new List<string>();
+                var nonMatching = new List<string>();
+
+                foreach (var p in paths)
+                {
+                    if (PathsEqual(p, keeper)) continue;
+                    var h = HashFile(p);
+                    if (!string.IsNullOrEmpty(keeperHash) && keeperHash == h)
+                    {
+                        exactDupes.Add(p);
+                    }
+                    else
+                    {
+                        nonMatching.Add(p);
+                    }
+                }
+
+                if (exactDupes.Count > 0)
+                {
+                    exactDupesByKeeper[keeper] = exactDupes;
+                    toCheckReferences.AddRange(exactDupes);
+                }
+
+                if (nonMatching.Count > 0)
+                {
+                    conflicts.Add((filename, new List<string> { keeper }.Concat(nonMatching).ToList()));
+                }
+            }
+
+            // 4) Build reverse-reference map for exact duplicates using AssetDatabase.GetDependencies
+            var candidateSet = new HashSet<string>(toCheckReferences, StringComparer.OrdinalIgnoreCase);
+            var referencing = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in candidateSet) referencing[c] = new List<string>();
+
+            // Scan all scenes and prefabs (primary places that reference prefabs)
+            var scanGuids = AssetDatabase.FindAssets("t:Scene t:Prefab");
+            foreach (var sg in scanGuids)
+            {
+                var ap = AssetDatabase.GUIDToAssetPath(sg);
+                if (string.IsNullOrEmpty(ap)) continue;
+                if (!ap.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
+                var deps = AssetDatabase.GetDependencies(ap, true);
+                foreach (var d in deps)
+                {
+                    if (candidateSet.Contains(d))
+                    {
+                        referencing[d].Add(ap);
+                    }
+                }
+            }
+
+            // 5) Prepare report
+            var deletable = referencing
+                .Where(kvp => kvp.Value.Count == 0)
+                .Select(kvp => kvp.Key)
+                .OrderBy(p => p)
+                .ToList();
+
+            var keptPreview = string.Join("\n", exactDupesByKeeper.Select(k => $"KEEP: {k.Key}\n  Duplicates: {string.Join(", ", k.Value)}"));
+            var conflictPreview = conflicts.Count == 0 ? "(none)" : string.Join("\n\n", conflicts.Select(c => $"NAME: {c.filename}\n  Variants: {string.Join("\n    ", c.paths)}"));
+            var deletablePreview = deletable.Count == 0 ? "(none)" : string.Join("\n", deletable);
+
+            var summary =
+                $"Duplicate filename groups: {duplicateSets.Count}\n" +
+                $"Exact duplicate sets: {exactDupesByKeeper.Count}\n" +
+                $"Deletable (unreferenced) duplicates: {deletable.Count}\n\n" +
+                "— Keepers and their exact duplicates —\n" + keptPreview + "\n\n" +
+                "— Unreferenced exact duplicates (safe to delete) —\n" + deletablePreview + "\n\n" +
+                "— Conflicting variants (different content; review manually) —\n" + conflictPreview + "\n\n" +
+                "Proceed to delete only the unreferenced exact duplicates?";
+
+            int choice = EditorUtility.DisplayDialogComplex(
+                "Clean Prefab Duplicates",
+                summary,
+                "Delete Unreferenced",
+                "Preview Only",
+                "Cancel");
+
+            if (choice == 2) return; // Cancel
+            if (choice == 1) return; // Preview only
+
+            // 6) Delete the unreferenced exact duplicates
+            int deleted = 0;
+            foreach (var p in deletable)
+            {
+                if (AssetDatabase.DeleteAsset(p))
+                {
+                    Debug.Log($"Deleted duplicate prefab: {p}");
+                    deleted++;
+                }
+                else
+                {
+                    Debug.LogWarning($"Failed to delete duplicate prefab: {p}");
+                }
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog("Clean Prefab Duplicates", $"Deleted {deleted} duplicate prefab(s).", "OK");
+        }
+
+        // Headless duplicate cleaner: deletes only unreferenced exact duplicates and returns counts
+        public static (int deleted, int conflicts) CleanPrefabDuplicatesHeadless()
+        {
+            var guids = AssetDatabase.FindAssets("t:Prefab");
+            var nameToPaths = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var guid in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path)) continue;
+                if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
+                var name = System.IO.Path.GetFileName(path);
+                if (!nameToPaths.TryGetValue(name, out var list))
+                {
+                    list = new List<string>();
+                    nameToPaths[name] = list;
+                }
+                list.Add(path);
+            }
+
+            string GetCanonicalPathFor(string filename)
+            {
+                var cp = Canonical.FirstOrDefault(c => c.name.Equals(filename, StringComparison.OrdinalIgnoreCase));
+                return cp?.canonicalPath;
+            }
+
+            string ChooseKeeper(string filename, List<string> paths)
+            {
+                var canonical = GetCanonicalPathFor(filename);
+                if (!string.IsNullOrEmpty(canonical) && paths.Any(p => PathsEqual(p, canonical)))
+                {
+                    return paths.First(p => PathsEqual(p, canonical));
+                }
+                foreach (var p in paths)
+                {
+                    var go = AssetDatabase.LoadAssetAtPath<GameObject>(p);
+                    if (go == null) continue;
+                    var target = ComputeDesignatedPath(go, p);
+                    if (!string.IsNullOrEmpty(target) && PathsEqual(p, target)) return p;
+                }
+                return paths.FirstOrDefault(p => p.StartsWith("Assets/Resources/NetworkPrefabs/", StringComparison.OrdinalIgnoreCase))
+                       ?? paths.FirstOrDefault(p => p.StartsWith("Assets/Prefabs/", StringComparison.OrdinalIgnoreCase))
+                       ?? paths[0];
+            }
+
+            string HashFile(string path)
+            {
+                try
+                {
+                    using (var stream = System.IO.File.OpenRead(System.IO.Path.GetFullPath(path)))
+                    using (var md5 = System.Security.Cryptography.MD5.Create())
+                    {
+                        var hash = md5.ComputeHash(stream);
+                        return BitConverter.ToString(hash).Replace("-", string.Empty);
+                    }
+                }
+                catch { return string.Empty; }
+            }
+
+            var duplicateSets = nameToPaths.Where(kvp => kvp.Value.Count > 1).ToDictionary(k => k.Key, v => v.Value);
+            var toCheck = new List<string>();
+            int conflictCount = 0;
+
+            foreach (var kvp in duplicateSets)
+            {
+                var keeper = ChooseKeeper(kvp.Key, kvp.Value);
+                var keeperHash = HashFile(keeper);
+                int nonMatching = 0;
+                foreach (var p in kvp.Value)
+                {
+                    if (PathsEqual(p, keeper)) continue;
+                    var h = HashFile(p);
+                    if (string.IsNullOrEmpty(keeperHash) || keeperHash != h) nonMatching++;
+                    else toCheck.Add(p);
+                }
+                if (nonMatching > 0) conflictCount++;
+            }
+
+            var candidateSet = new HashSet<string>(toCheck, StringComparer.OrdinalIgnoreCase);
+            var referencing = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in candidateSet) referencing[c] = new List<string>();
+            var scanGuids = AssetDatabase.FindAssets("t:Scene t:Prefab");
+            foreach (var sg in scanGuids)
+            {
+                var ap = AssetDatabase.GUIDToAssetPath(sg);
+                if (string.IsNullOrEmpty(ap)) continue;
+                if (!ap.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
+                var deps = AssetDatabase.GetDependencies(ap, true);
+                foreach (var d in deps) if (candidateSet.Contains(d)) referencing[d].Add(ap);
+            }
+
+            int deleted = 0;
+            foreach (var p in referencing.Where(kvp => kvp.Value.Count == 0).Select(kvp => kvp.Key))
+            {
+                if (AssetDatabase.DeleteAsset(p)) deleted++;
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            return (deleted, conflictCount);
+        }
+
         [MenuItem("Tools/MemeArena/Auto-Sort All Prefabs...")]
         public static void AutoSortAllPrefabs()
         {
@@ -114,6 +407,26 @@ namespace MemeArena.EditorTools
             if (!EditorUtility.DisplayDialog("Auto-Sort Prefabs", preview, "Apply", "Cancel")) return;
 
             FixLayout(moves);
+        }
+
+        // Headless variant used by Filesystem Unifier (no dialogs)
+        public static int AutoSortAllPrefabsHeadless()
+        {
+            var guids = AssetDatabase.FindAssets("t:Prefab");
+            var moves = new List<(string from, string to)>();
+            foreach (var guid in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path)) continue;
+                if (!path.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase)) continue;
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (go == null) continue;
+                var target = ComputeDesignatedPath(go, path);
+                if (string.IsNullOrEmpty(target)) continue;
+                if (!PathsEqual(path, target)) moves.Add((path, target));
+            }
+            if (moves.Count > 0) FixLayout(moves);
+            return moves.Count;
         }
 
         private static string ComputeDesignatedPath(GameObject prefab, string currentPath)

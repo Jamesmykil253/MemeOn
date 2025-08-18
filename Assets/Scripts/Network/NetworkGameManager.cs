@@ -22,6 +22,11 @@ namespace MemeArena.Networking
             {
                 var nm = NetworkManager.Singleton;
                 if (!nm) return;
+                if (nm.IsServer || nm.IsClient || nm.IsListening)
+                {
+                    // Already running; don't start again.
+                    return;
+                }
                 switch (startMode)
                 {
                     case StartMode.Host:

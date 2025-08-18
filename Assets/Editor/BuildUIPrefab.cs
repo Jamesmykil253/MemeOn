@@ -1,5 +1,7 @@
 #if UNITY_EDITOR
+using System;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,10 +17,7 @@ namespace MemeArena.EditorTools
             try
             {
                 // Add canonical binder
-                if (root.GetComponent<MemeArena.HUD.PlayerHUDBinder>() == null)
-                {
-                    root.AddComponent<MemeArena.HUD.PlayerHUDBinder>();
-                }
+                AddIfTypeExists(root, "MemeArena.HUD.PlayerHUDBinder");
 
                 // HUD panel container
                 var panel = new GameObject("Panel", typeof(RectTransform));
@@ -28,23 +27,23 @@ namespace MemeArena.EditorTools
 
                 // Health bar
                 var healthGO = CreateBar(panel.transform, "HealthBar", new Color(0.9f, 0.1f, 0.1f), new Vector2(16, 16));
-                healthGO.AddComponent<MemeArena.UI.HealthBarUI>();
+                AddIfTypeExists(healthGO, "MemeArena.UI.HealthBarUI");
 
                 // XP bar
                 var xpGO = CreateBar(panel.transform, "XPBar", new Color(0.1f, 0.5f, 0.9f), new Vector2(16, 40));
-                xpGO.AddComponent<MemeArena.UI.XPBarUI>();
+                AddIfTypeExists(xpGO, "MemeArena.UI.XPBarUI");
 
                 // Level text
                 var levelGO = CreateText(panel.transform, "LevelText", "Lv 1", TextAnchor.UpperLeft, new Vector2(16, 64));
-                levelGO.AddComponent<MemeArena.UI.LevelUI>();
+                AddIfTypeExists(levelGO, "MemeArena.UI.LevelUI");
 
                 // Coin counter
                 var coinGO = CreateText(panel.transform, "Coins", "0", TextAnchor.UpperRight, new Vector2(-16, 16));
-                coinGO.AddComponent<MemeArena.UI.CoinCounterUI>();
+                AddIfTypeExists(coinGO, "MemeArena.UI.CoinCounterUI");
 
                 // Boosted status
                 var boostGO = CreateText(panel.transform, "Boost", "", TextAnchor.UpperRight, new Vector2(-16, 40));
-                boostGO.AddComponent<MemeArena.UI.BoostedAttackUI>();
+                AddIfTypeExists(boostGO, "MemeArena.UI.BoostedAttackUI");
 
                 // Save under Assets/Prefabs/UI/UI.prefab
                 var dir = "Assets/Prefabs/UI";
@@ -56,7 +55,7 @@ namespace MemeArena.EditorTools
             }
             finally
             {
-                Object.DestroyImmediate(root);
+                UnityEngine.Object.DestroyImmediate(root);
             }
         }
 
@@ -122,6 +121,20 @@ namespace MemeArena.EditorTools
             var trt = (RectTransform)textGO.transform;
             trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one; trt.offsetMin = Vector2.zero; trt.offsetMax = Vector2.zero;
             return go;
+        }
+
+    private static void AddIfTypeExists(GameObject go, string fullTypeName)
+        {
+            var t = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => { try { return a.GetTypes(); } catch { return Array.Empty<Type>(); } })
+                .FirstOrDefault(x => x.FullName == fullTypeName);
+            if (t != null && typeof(Component).IsAssignableFrom(t))
+            {
+                if (go.GetComponent(t) == null)
+                {
+                    go.AddComponent(t);
+                }
+            }
         }
     }
 }

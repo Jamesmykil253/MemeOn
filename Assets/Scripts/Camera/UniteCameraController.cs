@@ -42,10 +42,7 @@ namespace MemeArena.CameraSystem
     private Vector3 _livePanOffset;   // offset added on top of follow offset while alive
     private Vector3 _freeCamVelocity; // for smooth damp in free mode
 
-        // Fallback actions if references are not wired
-        private InputSystem_Actions _actions;
-        private InputAction _moveFallback;
-    private InputAction _jumpFallback;
+    // No generated fallback; rely on InputActionReference assignments
 
         [Header("Debug")] public bool debugLogs = false;
 
@@ -115,21 +112,12 @@ namespace MemeArena.CameraSystem
             if (moveAction != null && !moveAction.action.enabled) moveAction.action.Enable();
             if (jumpAction != null && !jumpAction.action.enabled) jumpAction.action.Enable();
 
-            if (_actions == null && (moveAction == null))
-            {
-                _actions = new InputSystem_Actions();
-                _actions.Player.Enable();
-                _actions.UI.Enable();
-                if (moveAction == null) _moveFallback = _actions.Player.Move;
-                if (jumpAction == null) _jumpFallback = _actions.Player.Jump;
-                if (debugLogs) Debug.Log("UniteCameraController: Using InputSystem_Actions fallback (Move/Jump).");
-            }
+            // No fallback generated actions; fields must be assigned in inspector
         }
 
         private Vector2 ReadMove()
         {
             if (moveAction != null) return moveAction.action.ReadValue<Vector2>();
-            if (_moveFallback != null) return _moveFallback.ReadValue<Vector2>();
             return Vector2.zero;
         }
 
@@ -140,14 +128,7 @@ namespace MemeArena.CameraSystem
 
         private void OnDisable()
         {
-            if (_actions != null)
-            {
-                _actions.Player.Disable();
-                _actions.UI.Disable();
-                _actions.Dispose();
-                _actions = null;
-                _moveFallback = null; _jumpFallback = null;
-            }
+            // nothing to clean up
         }
 
         public void SetTarget(Transform newTarget)

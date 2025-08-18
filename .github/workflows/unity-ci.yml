@@ -1,0 +1,41 @@
+name: Unity CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-build:
+    name: Test and Build (Unity)
+    runs-on: ubuntu-latest
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ runner.os }}-${{ hashFiles('**/Packages/manifest.json') }}-${{ hashFiles('**/Packages/packages-lock.json') }}
+          restore-keys: |
+            Library-${{ runner.os }}-
+
+      - name: Test (EditMode + PlayMode)
+        uses: game-ci/unity-test-runner@v4
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          unityVersion: auto
+          testMode: all
+
+      - name: Build (Linux headless)
+        uses: game-ci/unity-builder@v4
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          unityVersion: auto
+          targetPlatform: LinuxHeadless64

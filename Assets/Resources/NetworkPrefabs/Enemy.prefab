@@ -452,7 +452,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 921667076
+  GlobalObjectIdHash: 1438551839
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -582,8 +582,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  _config: {fileID: 0}
-  _stats: {fileID: 0}
+  _config: {fileID: 11400000, guid: a1d90dfe611324b6a93f79049e2f09a5, type: 2}
+  _stats: {fileID: 11400000, guid: c95e4f1bee2784eaba436e157f757605, type: 2}
   projectilePrefab: {fileID: 0}
   muzzle: {fileID: 0}
   debugLogs: 0
