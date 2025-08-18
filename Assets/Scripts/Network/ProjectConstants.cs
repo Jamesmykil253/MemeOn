@@ -66,8 +66,10 @@ namespace MemeArena.Network
             // Unity layer indices used by physics and line of sight checks.  These values should
             // correspond to your project's layer manager settings.  Adjust as needed.
             public const int Default = 0;
-            public const int Environment = 6;
-            public const int Player = 7;
+            // Align with TagManager: Environment=3, Player=6, Enemy=7, AI=8, Projectiles=9
+            public const int Environment = 3;
+            public const int Player = 6;
+            public const int Enemy = 7;
             public const int AI = 8;
             public const int Projectile = 9;
         }

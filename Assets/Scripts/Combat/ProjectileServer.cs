@@ -26,6 +26,8 @@ namespace MemeArena.Combat
 
         [Tooltip("Damage applied on hit.")]
         public int damage = 10;
+    [Header("Debugging")]
+    [SerializeField] private bool debugLogs = false;
 
         // Owner and team assigned at spawn.  Owner is the clientId of the
         // entity that fired the projectile; ownerTeam is used to prevent
@@ -43,6 +45,8 @@ namespace MemeArena.Combat
             if (IsServer)
             {
                 _timer = lifeSeconds;
+                if (debugLogs)
+                    Debug.Log($"ProjectileServer(Server) spawned. ownerClient={ownerClientId} ownerObj={ownerObjectId} team={ownerTeam} dmg={damage} speed={speed} life={lifeSeconds}");
             }
         }
 
@@ -53,8 +57,13 @@ namespace MemeArena.Combat
             // Move forward in local space.
             transform.position += transform.forward * speed * dt;
             _timer -= dt;
+            if (debugLogs)
+            {
+                Debug.Log($"ProjectileServer(Server) step: pos={transform.position} remain={_timer:F2}");
+            }
             if (_timer <= 0f)
             {
+                if (debugLogs) Debug.Log("ProjectileServer(Server) expired");
                 NotifyOwnerFailure();
                 Despawn();
             }
@@ -65,32 +74,31 @@ namespace MemeArena.Combat
             if (!IsServer) return;
             // Ignore collisions with self or owner.
             if (other.gameObject == gameObject) return;
-            // Check for health component on parent chains to support child hitboxes.
-            NetworkHealth health = other.GetComponentInParent<NetworkHealth>();
-            HealthNetwork healthLegacy = other.GetComponentInParent<HealthNetwork>();
+        // Check for health component on parent chains to support child hitboxes.
+        NetworkHealth health = other.GetComponentInParent<NetworkHealth>();
             TeamId targetTeam = other.GetComponentInParent<TeamId>();
-            if ((health != null || healthLegacy != null) && targetTeam != null)
+        if (health != null && targetTeam != null)
             {
                 // Only hit opposing teams.
                 if (targetTeam.team != ownerTeam)
                 {
-                    if (health != null)
-                    {
-                        health.TakeDamageServerRpc(damage, ownerClientId);
-                    }
-                    else
-                    {
-                        healthLegacy.Damage(damage);
-                    }
+                    if (debugLogs)
+                        Debug.Log($"ProjectileServer(Server) hit valid target {other.name} team={targetTeam.team}");
+            health.TakeDamageServerRpc(damage, ownerClientId);
                     NotifyOwnerSuccess();
                     Despawn();
                     return;
+                }
+                else if (debugLogs)
+                {
+                    Debug.Log($"ProjectileServer(Server) ignored friendly target {other.name}");
                 }
             }
             // Otherwise ignore or pass through.  Note: environment collisions
             // cause the projectile to despawn without hitting.
             if (other.gameObject.layer == ProjectConstants.Layers.Environment)
             {
+                if (debugLogs) Debug.Log($"ProjectileServer(Server) hit environment: {other.name}");
                 NotifyOwnerFailure();
                 Despawn();
             }
@@ -108,6 +116,7 @@ namespace MemeArena.Combat
             if (col != null)
             {
                 col.isTrigger = true;
+                if (debugLogs) Debug.Log("ProjectileServer(Server) collider set to trigger");
             }
         }
 
@@ -138,6 +147,7 @@ namespace MemeArena.Combat
             _timer = life;
             // Delegate to the default launch behaviour to mark the collider as trigger.
             Launch();
+            if (debugLogs) Debug.Log($"ProjectileServer(Server) launched dir={direction} speed={speed} life={life} dmg={damage}");
         }
 
         /// <summary>
@@ -177,6 +187,7 @@ namespace MemeArena.Combat
             _timer = life;
             // Configure collider and other launch settings.
             Launch();
+            if (debugLogs) Debug.Log($"ProjectileServer(Server) launched by owner={owner?.name} dmg={damage} speed={speed} life={lifeSeconds}");
         }
 
         private void NotifyOwnerSuccess()
@@ -188,6 +199,7 @@ namespace MemeArena.Combat
                 var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerObjectId].gameObject;
                 var ai = obj.GetComponent<AIController>();
                 ai?.OnSuccessfulHit();
+                if (debugLogs) Debug.Log("ProjectileServer(Server) notified owner of success");
             }
         }
 
@@ -200,6 +212,7 @@ namespace MemeArena.Combat
                 var obj = NetworkManager.Singleton.SpawnManager.SpawnedObjects[ownerObjectId].gameObject;
                 var ai = obj.GetComponent<AIController>();
                 ai?.OnFailedHit();
+                if (debugLogs) Debug.Log("ProjectileServer(Server) notified owner of failure");
             }
         }
 
@@ -209,10 +222,12 @@ namespace MemeArena.Combat
             if (IsSpawned)
             {
                 GetComponent<NetworkObject>().Despawn(true);
+                if (debugLogs) Debug.Log("ProjectileServer(Server) despawned network object");
             }
             else
             {
                 Destroy(gameObject);
+                if (debugLogs) Debug.Log("ProjectileServer(Server) destroyed (was not spawned)");
             }
         }
     }

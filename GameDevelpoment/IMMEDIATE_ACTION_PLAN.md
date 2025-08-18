@@ -46,6 +46,14 @@
      - Tronald Dump: 140 HP, 5 m/s speed, 2.2m jump
    - **Action:** Create prefab variants with CharacterStats configured
 
+6. **Camera Pan + Jump/Double Jump Validation**
+   - **Files:** `Assets/Scripts/Camera/UniteCameraController.cs`, `Assets/Scripts/Players/PlayerMovement.cs`
+   - **Action:** Assign Look and PanModifier (Right Mouse) for live pan; ensure Move is bound for free-cam on death. Verify Jump action.
+   - **QA:**
+     - Alive: Hold PanModifier + move mouse → camera pans horizontally and vertically (Y only), release → recenters.
+     - Dead: Move.x pans horizontally; Move.y raises/lowers along Y; scroll adjusts zoom.
+     - Jump: Jump from ground; double jump mid-air; landing restores double jump.
+
 ## Sprint 2 - Core Functionality (2-3 weeks)
 
 ### Input System Integration

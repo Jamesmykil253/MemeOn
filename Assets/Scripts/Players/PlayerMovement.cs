@@ -23,18 +23,29 @@ namespace MemeArena.Players
     [Header("Input")]
     public InputActionReference moveAction; // Vector2 action ("Move")
     public InputActionReference attackAction; // Button action ("Attack")
+    public InputActionReference jumpAction; // Button action ("Jump")
 
         // Fallback when InputActionReferences are not wired in the inspector.
         InputSystem_Actions _actions; // generated class from Assets/InputSystem_Actions.inputactions
         InputAction _moveFallback;
-        InputAction _attackFallback;
+    InputAction _attackFallback;
+    InputAction _jumpFallback;
 
         CharacterController _cc;
         Vector3 _serverVelocity;
         Vector2 _lastClientMove;
         float _externalSpeedMultiplier = 1f;
+    float _lastInputReceiveTime;
+    bool _canDoubleJump; // server-owned
+    bool _wasGrounded;   // server-owned
+
+    [Header("Jumping")]
+    [Min(0.5f)] public float jumpHeight = 2.5f; // meters
+    [Tooltip("If <= 0, reuse jumpHeight for double jump.")]
+    public float doubleJumpHeight = 0f;
     [Header("Debug")]
     [SerializeField] bool debugLogs = false;
+    [SerializeField] bool verboseMovement = false;
     bool _loggedOwnerNonZero;
     bool _loggedServerNonZero;
 
@@ -50,14 +61,16 @@ namespace MemeArena.Players
                 // Enable assigned references if present
                 if (moveAction != null) moveAction.action.Enable();
                 if (attackAction != null) attackAction.action.Enable();
+                if (jumpAction != null) jumpAction.action.Enable();
 
                 // Auto-bind fallback if references are missing
-                if (moveAction == null || attackAction == null)
+                if (moveAction == null || attackAction == null || jumpAction == null)
                 {
                     _actions = new InputSystem_Actions();
                     _actions.Player.Enable();
                     if (moveAction == null) _moveFallback = _actions.Player.Move;
                     if (attackAction == null) _attackFallback = _actions.Player.Attack;
+                    if (jumpAction == null) _jumpFallback = _actions.Player.Jump;
                     Debug.Log("PlayerMovement: Using auto-bound InputSystem_Actions fallback.");
                 }
 
@@ -98,6 +111,7 @@ namespace MemeArena.Players
             {
                 if (moveAction != null) moveAction.action.Disable();
                 if (attackAction != null) attackAction.action.Disable();
+                if (jumpAction != null) jumpAction.action.Disable();
                 if (_actions != null)
                 {
                     _actions.Player.Disable();
@@ -105,6 +119,7 @@ namespace MemeArena.Players
                     _actions = null;
                     _moveFallback = null;
                     _attackFallback = null;
+                    _jumpFallback = null;
                 }
             }
         }
@@ -134,6 +149,15 @@ namespace MemeArena.Players
                         _fireCooldownTimer = 0.2f;
                     }
                 }
+
+                // Jump input: request jump (server validates ground/double jump)
+                bool jumpPressed = false;
+                if (jumpAction != null) jumpPressed = jumpAction.action.WasPressedThisFrame();
+                else if (_jumpFallback != null) jumpPressed = _jumpFallback.WasPressedThisFrame();
+                if (jumpPressed)
+                {
+                    RequestJumpServerRpc();
+                }
             }
 
             if (IsServer)
@@ -144,31 +168,88 @@ namespace MemeArena.Players
                 else
                     _serverVelocity.y += gravity * Time.fixedDeltaTime;
 
+                // Grounded state management for double jump reset
+                if (_cc.isGrounded && !_wasGrounded)
+                {
+                    _canDoubleJump = true; // touching ground restores double-jump availability
+                }
+                _wasGrounded = _cc.isGrounded;
+
                 Vector3 moveDir = new Vector3(_lastClientMove.x, 0f, _lastClientMove.y);
                 if (moveDir.sqrMagnitude > 1f) moveDir.Normalize();
                 float speed = moveSpeed * _externalSpeedMultiplier;
 
                 Vector3 disp = (moveDir * speed + new Vector3(0f, _serverVelocity.y, 0f)) * Time.fixedDeltaTime;
                 _cc.Move(disp);
+                if (verboseMovement)
+                {
+                    Debug.Log($"PlayerMovement(Server): moveDir={moveDir} speed={speed} disp={disp} grounded={_cc.isGrounded}");
+                }
 
                 if (moveDir.sqrMagnitude > 0.0001f)
                 {
                     Quaternion target = Quaternion.LookRotation(moveDir, Vector3.up);
                     transform.rotation = Quaternion.RotateTowards(transform.rotation, target, rotationSpeedDeg * Time.fixedDeltaTime);
                 }
+
+                // Watchdog: if no input received for > 1s, zero client move to avoid stale drift.
+                if (Time.time - _lastInputReceiveTime > 1.0f && _lastClientMove.sqrMagnitude > 0f)
+                {
+                    _lastClientMove = Vector2.zero;
+                }
             }
         }
 
-    [ServerRpc]
-        public void SubmitInputServerRpc(Vector2 move, float dt)
+    [ServerRpc(RequireOwnership = false)]
+        public void SubmitInputServerRpc(Vector2 move, float dt, ServerRpcParams rpcParams = default)
         {
+            // Validate the caller is the owner of this object to prevent spoofing.
+            if (NetworkObject == null)
+                return;
+            if (rpcParams.Receive.SenderClientId != NetworkObject.OwnerClientId)
+            {
+                if (debugLogs)
+                    Debug.LogWarning($"PlayerMovement: Ignoring input from non-owner {rpcParams.Receive.SenderClientId} (owner={NetworkObject.OwnerClientId}).");
+                return;
+            }
             _lastClientMove = move;
+            _lastInputReceiveTime = Time.time;
             if (debugLogs && !_loggedServerNonZero && move.sqrMagnitude > 0.0001f)
             {
                 _loggedServerNonZero = true;
                 Debug.Log($"PlayerMovement: Server received input {move}");
             }
         }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestJumpServerRpc(ServerRpcParams rpcParams = default)
+    {
+        if (NetworkObject == null) return;
+        if (rpcParams.Receive.SenderClientId != NetworkObject.OwnerClientId)
+        {
+            if (debugLogs) Debug.LogWarning($"PlayerMovement: Ignoring jump from non-owner {rpcParams.Receive.SenderClientId} (owner={NetworkObject.OwnerClientId}).");
+            return;
+        }
+        if (!IsServer) return;
+
+        float jh = jumpHeight > 0f ? jumpHeight : 2.0f;
+        float djh = doubleJumpHeight > 0f ? doubleJumpHeight : jh;
+        float jumpVel = Mathf.Sqrt(Mathf.Abs(2f * gravity * -1f) * jh); // gravity is negative; use magnitude
+        float doubleJumpVel = Mathf.Sqrt(Mathf.Abs(2f * gravity * -1f) * djh);
+
+        if (_cc.isGrounded)
+        {
+            _serverVelocity.y = jumpVel;
+            _canDoubleJump = true; // allow one more in air
+            if (debugLogs) Debug.Log("PlayerMovement(Server): Jump (ground)");
+        }
+        else if (_canDoubleJump)
+        {
+            _serverVelocity.y = doubleJumpVel;
+            _canDoubleJump = false;
+            if (debugLogs) Debug.Log("PlayerMovement(Server): Double jump");
+        }
+    }
 
         /// <summary>Apply slow/heal effects externally via zones. 1 = normal.</summary>
         public void SetExternalSpeedMultiplier(float mult)

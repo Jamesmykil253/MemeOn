@@ -2,6 +2,7 @@ namespace MemeArena.Utils
 {
     public static class Layers
     {
-        public static int Projectile => UnityEngine.LayerMask.NameToLayer("Projectile");
+    // Prefer central ProjectConstants to avoid name mismatches
+    public static int Projectile => MemeArena.Network.ProjectConstants.Layers.Projectile;
     }
 }

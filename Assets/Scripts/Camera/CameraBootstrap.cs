@@ -14,17 +14,28 @@ namespace MemeArena.CameraSystem
 
         private void Start()
         {
-            // Prefer the local player; otherwise, any player; fallback to any AI
-            var player = FindFirstObjectByType<MemeArena.Players.PlayerController>() as Component;
-            if (!player) player = FindAnyObjectByType<MemeArena.Players.PlayerController>();
-            // Fallback to PlayerMovement if PlayerController isn't used
-            if (!player) player = FindFirstObjectByType<MemeArena.Players.PlayerMovement>();
-            if (!player) player = FindAnyObjectByType<MemeArena.Players.PlayerMovement>();
-            if (player) { _cam.target = player.transform; return; }
+            // Prefer the local player
+            var allMovers = FindObjectsByType<MemeArena.Players.PlayerMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            foreach (var pm in allMovers)
+            {
+                var no = pm.GetComponent<Unity.Netcode.NetworkObject>();
+                if (no != null && no.IsLocalPlayer)
+                {
+            _cam.SetTarget(pm.transform); return;
+                }
+            }
+            // Fallback: any PlayerMovement
+        if (allMovers.Length > 0) { _cam.SetTarget(allMovers[0].transform); return; }
 
             var enemyAI = FindFirstObjectByType<MemeArena.AI.AIController>();
             if (!enemyAI) enemyAI = FindAnyObjectByType<MemeArena.AI.AIController>();
-            if (enemyAI) _cam.target = enemyAI.transform;
+            if (enemyAI) _cam.SetTarget(enemyAI.transform);
+        }
+
+        public void Retarget(Transform t)
+        {
+            if (!_cam) _cam = GetComponent<UniteCameraController>();
+            _cam?.SetTarget(t);
         }
     }
 }

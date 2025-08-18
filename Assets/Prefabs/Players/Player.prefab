@@ -67,7 +67,6 @@ GameObject:
   - component: {fileID: 8076948123935878646}
   - component: {fileID: 7330676258798695526}
   - component: {fileID: 6793057788261664666}
-  - component: {fileID: 6068574504525434252}
   - component: {fileID: -2382671246328507373}
   - component: {fileID: 735739966014345678}
   - component: {fileID: 3257756471342274038}
@@ -172,6 +171,7 @@ MonoBehaviour:
   moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   attackAction: {fileID: 1120369429361536294, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   debugLogs: 1
+  verboseMovement: 1
 --- !u!114 &7330676258798695526
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -187,6 +187,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   projectilePrefab: {fileID: 8242624005166438942, guid: 85deb94b61bdb4a229294386692c3fae, type: 3}
   damage: 10
+  debugLogs: 1
 --- !u!114 &6793057788261664666
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -202,21 +203,6 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   Coins:
     m_InternalValue: 0
---- !u!114 &6068574504525434252
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ba605c72bf5c40baa4c5c24acc98fe8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  TeamIndex:
-    m_InternalValue: 1
 --- !u!114 &-2382671246328507373
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -313,7 +299,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f2ac3b1b58af0484595cc58852cd85e8, type: 3}
   m_Name: 
@@ -352,7 +338,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 64d886141661f495f98991f264e30cc1, type: 3}
   m_Name: 
@@ -367,7 +353,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2170685497171753368}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 68269e50cf1c54242873ab66082e8779, type: 3}
   m_Name: 

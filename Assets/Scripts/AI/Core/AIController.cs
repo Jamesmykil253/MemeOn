@@ -47,6 +47,10 @@ namespace MemeArena.AI
         private float _aiTimer;
         private float _btTimer;
         private bool _initialized;
+    [Header("Debugging")]
+    [SerializeField] private bool debugLogs = false;
+    [SerializeField] private bool setStateColors = false;
+    [SerializeField] private Renderer stateColorRenderer;
 
         // Attack cooldown timer used by legacy helper methods has been removed.
         // The new FSM handles attack timings within its own states.
@@ -116,6 +120,10 @@ namespace MemeArena.AI
             // Initialize state to Idle.
             ChangeState(nameof(IdleState));
             _initialized = true;
+            if (debugLogs)
+            {
+                Debug.Log($"AIController(Server) initialized. aiTick={_aiTickInterval:F3}s btTick={_btTickInterval:F3}s state={CurrentStateName}");
+            }
 
         }
 
@@ -132,6 +140,7 @@ namespace MemeArena.AI
             {
                 _btTimer -= _btTickInterval;
                 _behaviorTree?.Tick(_btTickInterval);
+                if (debugLogs) Debug.Log("AIController(Server) BT tick");
             }
 
             // Run the current state at its own cadence.
@@ -139,6 +148,7 @@ namespace MemeArena.AI
             {
                 float step = _aiTimer;
                 _aiTimer = 0f;
+                if (debugLogs) Debug.Log($"AIController(Server) FSM tick {CurrentStateName} dt={step:F3}");
                 _currentState?.Tick(step);
                 // Update time since last successful hit.
                 _blackboard.timeSinceLastSuccessfulHit += step;
@@ -160,6 +170,11 @@ namespace MemeArena.AI
                 _currentState?.Exit();
                 _currentState = newState;
                 _currentState.Enter();
+                if (debugLogs) Debug.Log($"AIController(Server) state -> {stateName}");
+                if (setStateColors && stateColorRenderer != null)
+                {
+                    stateColorRenderer.material.color = StateColor(stateName);
+                }
             }
             else
             {
@@ -240,7 +255,9 @@ namespace MemeArena.AI
             if (flatDir.sqrMagnitude > 1e-5f)
             {
                 flatDir.Normalize();
-                _characterController.Move(flatDir * _stats.moveSpeed * dt);
+                var disp = flatDir * _stats.moveSpeed * dt;
+                _characterController.Move(disp);
+                if (debugLogs) Debug.Log($"AIController(Server) Move disp={disp}");
             }
         }
 
@@ -257,6 +274,7 @@ namespace MemeArena.AI
             dir.Normalize();
             Quaternion targetRot = Quaternion.LookRotation(dir);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, _stats.rotationSpeed * dt);
+            if (debugLogs) Debug.Log("AIController(Server) FaceTowards called");
         }
         #endregion
 
@@ -276,16 +294,15 @@ namespace MemeArena.AI
             {
                 if (col.gameObject == gameObject) continue;
                 NetworkHealth targetHealth = col.GetComponent<NetworkHealth>();
-                HealthNetwork targetHealthLegacy = col.GetComponent<HealthNetwork>();
                 TeamId targetTeam = col.GetComponent<TeamId>();
                 TeamId myTeam = GetComponent<TeamId>();
-                if ((targetHealth != null || targetHealthLegacy != null) && targetTeam != null && myTeam != null && targetTeam.team != myTeam.team)
+                if (targetHealth != null && targetTeam != null && myTeam != null && targetTeam.team != myTeam.team)
                 {
-                    if (targetHealth != null) targetHealth.TakeDamageServerRpc(10, OwnerClientId);
-                    else targetHealthLegacy.Damage(10);
+                    targetHealth.TakeDamageServerRpc(10, OwnerClientId);
                     hit = true;
                 }
             }
+            if (debugLogs) Debug.Log($"AIController(Server) MeleeAttack hit={hit}");
             if (hit) OnSuccessfulHit();
             else OnFailedHit();
             return hit;
@@ -323,7 +340,24 @@ namespace MemeArena.AI
             }
             no.Spawn(true);
             proj.Launch();
+            if (debugLogs) Debug.Log("AIController(Server) RangedAttack spawned & launched projectile");
             return true;
+        }
+        private Color StateColor(string state)
+        {
+            return state switch
+            {
+                nameof(IdleState) => Color.gray,
+                nameof(AlertState) => Color.yellow,
+                nameof(PursueState) => Color.cyan,
+                nameof(MeleeAttackState) => Color.red,
+                nameof(RangedAttackState) => new Color(1f, 0.4f, 0f),
+                nameof(EvadeState) => Color.magenta,
+                nameof(StunnedState) => Color.blue,
+                nameof(ReturnToSpawnState) => Color.green,
+                nameof(DeadState) => Color.black,
+                _ => Color.white
+            };
         }
         #endregion
     }

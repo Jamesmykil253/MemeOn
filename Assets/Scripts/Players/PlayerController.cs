@@ -17,6 +17,8 @@ namespace MemeArena.Players
         private Vector2 _move;
         private Vector2 _look;
         private bool _fire;
+    [Header("Debugging")]
+    [SerializeField] private bool debugLogs = false;
 
         [Header("Movement Tuning")]
         public float moveSpeed = 4f;
@@ -49,6 +51,10 @@ namespace MemeArena.Players
         {
             if (IsOwner)
             {
+                if (debugLogs)
+                {
+                    Debug.Log($"PlayerController(Owner={OwnerClientId}) sending input move={_move} look={_look} fire={_fire}");
+                }
                 SubmitInputServerRpc(_move, _look, _fire);
                 _fire = false;
             }
@@ -57,12 +63,22 @@ namespace MemeArena.Players
         /// <summary>
         /// Sends player input to the server for authoritative movement and firing.
         /// </summary>
-        [ServerRpc]
-        private void SubmitInputServerRpc(Vector2 move, Vector2 look, bool fire)
+        [ServerRpc(RequireOwnership = false)]
+        private void SubmitInputServerRpc(Vector2 move, Vector2 look, bool fire, ServerRpcParams rpcParams = default)
         {
+            if (rpcParams.Receive.SenderClientId != NetworkObject.OwnerClientId)
+            {
+                if (debugLogs)
+                    Debug.LogWarning($"PlayerController: Ignoring input from non-owner {rpcParams.Receive.SenderClientId} (owner={NetworkObject.OwnerClientId}).");
+                return;
+            }
             var dt = Time.fixedDeltaTime;
             var w = new Vector3(move.x, 0f, move.y) * moveSpeed;
             _cc.Move(w * dt);
+            if (debugLogs && w.sqrMagnitude > 0f)
+            {
+                Debug.Log($"PlayerController(Server) moved by {w * dt}");
+            }
 
             if (w.sqrMagnitude > 0.0001f)
             {
@@ -77,6 +93,7 @@ namespace MemeArena.Players
                 {
                     // Call the RPC on the combat controller.  The method name ends
                     // with "ServerRpc" to satisfy NGO conventions.
+                    if (debugLogs) Debug.Log("PlayerController(Server) firing");
                     pc.FireServerRpc();
                 }
             }

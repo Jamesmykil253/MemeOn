@@ -85,12 +85,26 @@ namespace MemeArena.Game
                 _deposits.Remove(nob);
             }
 
-            // Reset slow when leaving enemy goal
+            // Reset slow when leaving enemy goal, but only if not still inside any other enemy goal
             var move = other.GetComponentInParent<MemeArena.Players.PlayerMovement>();
             var tid = other.GetComponentInParent<MemeArena.Network.TeamId>();
             if (move != null && tid != null && zoneType == ZoneType.TeamGoal && tid.team != teamId)
             {
-                move.SetExternalSpeedMultiplier(1f);
+                bool stillInAnyEnemyGoal = false;
+                var cols = Physics.OverlapSphere(other.transform.position, 0.1f);
+                foreach (var c in cols)
+                {
+                    var dz = c.GetComponentInParent<DepositZone>();
+                    var otid = c.GetComponentInParent<MemeArena.Network.TeamId>();
+                    if (dz != null && dz.zoneType == ZoneType.TeamGoal && otid != null && otid.team != dz.teamId)
+                    {
+                        stillInAnyEnemyGoal = true; break;
+                    }
+                }
+                if (!stillInAnyEnemyGoal)
+                {
+                    move.SetExternalSpeedMultiplier(1f);
+                }
             }
         }
 
@@ -99,7 +113,7 @@ namespace MemeArena.Game
             // Channel time scales with coin count at start of channel
             int coins = Mathf.Max(0, inv.Coins.Value);
             if (coins == 0) { yield break; }
-            float channel = depositSecondsPerCoin * coins;
+            float channel = (ProjectConstants.Match.DepositCooldown > 0f ? ProjectConstants.Match.DepositCooldown : depositSecondsPerCoin) * coins;
 
             float t = 0f;
             while (t < channel)
