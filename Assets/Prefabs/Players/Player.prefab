@@ -64,7 +64,7 @@ GameObject:
   - component: {fileID: 206975841182195276}
   - component: {fileID: 1296336912210658751}
   - component: {fileID: -2837294982794779125}
-  - component: {fileID: 8076948123935878646}
+  - component: {fileID: 9013843232217487200}
   - component: {fileID: 7330676258798695526}
   - component: {fileID: 6793057788261664666}
   - component: {fileID: -2382671246328507373}
@@ -114,7 +114,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 2238060216
+  GlobalObjectIdHash: 1415978706
   InScenePlacedSourceGlobalObjectIdHash: 2238060216
   DeferredDespawnTick: 0
   Ownership: 1
@@ -152,7 +152,7 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &8076948123935878646
+--- !u!114 &9013843232217487200
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -165,16 +165,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  moveSpeed: 7
+  moveSpeed: 6
   rotationSpeedDeg: 720
-  gravity: -9
+  gravity: -25
+  inputDeadZone: 0.15
   moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   attackAction: {fileID: 1120369429361536294, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   jumpAction: {fileID: -2099379676528639254, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  jumpHeight: 2.5
+  firstJumpHeight: 1.5
   doubleJumpHeight: 0
-  debugLogs: 1
-  verboseMovement: 1
+  doubleJumpApexBonus: 0.75
+  apexWindowSeconds: 0.12
+  debugLogs: 0
+  verboseMovement: 0
 --- !u!114 &7330676258798695526
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -410,7 +413,7 @@ MonoBehaviour:
   RotationMaxInterpolationTime: 0.1
   ScaleLerpSmoothing: 1
   ScaleMaxInterpolationTime: 0.1
-  AuthorityMode: 0
+  AuthorityMode: 1
   TickSyncChildren: 0
   UseUnreliableDeltas: 0
   SyncPositionX: 1
@@ -441,7 +444,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1575790377520904736}
-  - component: {fileID: 3134186731939640369}
   m_Layer: 11
   m_Name: MeleeWeapon
   m_TagString: Untagged
@@ -464,25 +466,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 206975841182195276}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3134186731939640369
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4613641378409642606}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7fa531e2f9bff4e4d9bb5c848de35132, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTopMostFoldoutHeaderGroup: 1
-  radius: 1.6
-  range: 1.8
-  damage: 20
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 128
 --- !u!1 &5053009380701313563
 GameObject:
   m_ObjectHideFlags: 0
@@ -492,7 +475,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2502194629096606744}
-  - component: {fileID: 3728221732140556871}
   m_Layer: 11
   m_Name: AOE/Skill
   m_TagString: Untagged
@@ -515,30 +497,3 @@ Transform:
   m_Children: []
   m_Father: {fileID: 206975841182195276}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!54 &3728221732140556871
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5053009380701313563}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 1
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0

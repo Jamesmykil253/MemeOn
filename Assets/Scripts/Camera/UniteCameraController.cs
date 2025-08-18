@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
+using UnityEngine.Serialization;
 
-using MemeArena.Combat; // NetworkHealth
+// Health binding removed; camera no longer depends on NetworkHealth
 
 namespace MemeArena.CameraSystem
 {
@@ -17,39 +18,34 @@ namespace MemeArena.CameraSystem
         public float maxZoom = 12f;
     [Range(-89f, 89f)] public float pitchDeg = 35f;
     [Range(-180f, 180f)] public float yawDeg = 0f;
+    public enum RotationSource { PitchYaw, Transform }
+    [Tooltip("Choose how the camera's orbit rotation is determined (fields vs current Transform).")]
+    public RotationSource rotationSource = RotationSource.PitchYaw;
+    [FormerlySerializedAs("useTransformRotation")][HideInInspector]
+    public bool useTransformRotation = false; // Back-compat: migrated to rotationSource in OnValidate
+    [Tooltip("If true and RotationSource is PitchYaw, forces the camera to look at the target each frame.")]
+    public bool lockLookAtTarget = true;
 
-        [Header("Live pan (while alive)")]
-        [Tooltip("If true, holding the pan modifier or using Look input allows panning the camera without detaching from the player.")]
-        public bool enableLivePan = true;
-        [Tooltip("Optional input to require while panning (e.g., Right Mouse Button). If null, Look alone enables panning.")]
-        public InputActionReference panModifierAction; // optional
-        public InputActionReference lookAction; // Vector2 ("Look") optional; falls back to generated actions
-        public float livePanHorizontalSpeed = 10f; // world-space XZ along camera right/forward (horizontal only)
-        public float livePanVerticalSpeed = 6f;    // affects Y only (Look.y -> Y), matching spec for vertical arena
-        public float livePanMaxRadius = 6f;        // clamp horizontal pan from player
-        public float livePanRecenterSpeed = 5f;    // spring back to player when not panning
+        // Live pan removed for simplicity; camera follows target and optional manual pan is available.
 
-        [Header("Free cam on death")]
-        [Tooltip("When the target dies, detach and allow free camera motion controlled by input.")]
-        public bool freeCamOnDeath = true;
-        public InputActionReference moveAction;   // Vector2 ("Move") optional; falls back to generated actions
-        public InputActionReference jumpAction;   // Button ("Jump") optional; not mandatory for spec but kept for future
-        public float freePanSpeed = 12f;          // applies to X using Move.x
-        public float freeElevateSpeed = 8f;       // applies to Y using Move.y (per spec: up/down -> Y axis)
-        public float freePanDamping = 10f;        // smoothing for free cam motion
+    [Header("Manual free pan (optional)")]
+    [Tooltip("Hold Move input to nudge the camera position manually. Not tied to health/death.")]
+    public bool enableManualFreePan = false;
+    public InputActionReference moveAction;   // Vector2 ("Move") optional; falls back to generated actions
+    public InputActionReference jumpAction;   // kept for future
+    public float freePanSpeed = 12f;
+    public float freeElevateSpeed = 8f;
+    public float freePanDamping = 10f;
+    [Range(0f, 1f)] public float inputDeadZone = 0.15f;
 
-        private float _zoom = 8f;
-        private Vector3 _livePanOffset;   // offset added on top of follow offset while alive
-        private Vector3 _freeCamVelocity; // for smooth damp in free mode
-        private bool _targetIsDead;
-        private NetworkHealth _observedHealth;
+    private float _zoom = 8f;
+    private Vector3 _livePanOffset;   // offset added on top of follow offset while alive
+    private Vector3 _freeCamVelocity; // for smooth damp in free mode
 
         // Fallback actions if references are not wired
         private InputSystem_Actions _actions;
-        private InputAction _lookFallback;
         private InputAction _moveFallback;
     private InputAction _jumpFallback;
-    private InputAction _panModFallback; // Use Player.Sprint as pan modifier (Left Shift)
 
         [Header("Debug")] public bool debugLogs = false;
 
@@ -58,7 +54,11 @@ namespace MemeArena.CameraSystem
             // NOTE: Use Input System for gameplay; here we only use legacy mouse wheel for editor convenience if available.
             try
             {
-                _zoom = Mathf.Clamp(_zoom - UnityEngine.Input.mouseScrollDelta.y * zoomSpeed * Time.deltaTime, minZoom, maxZoom);
+                float scroll = UnityEngine.Input.mouseScrollDelta.y;
+                if (Mathf.Abs(scroll) > 0.01f)
+                {
+                    _zoom = Mathf.Clamp(_zoom - scroll * zoomSpeed * Time.deltaTime, minZoom, maxZoom);
+                }
             }
             catch { /* Ignore if legacy input disabled */ }
         }
@@ -74,102 +74,56 @@ namespace MemeArena.CameraSystem
                 return;
             }
 
-            if (freeCamOnDeath && _targetIsDead)
+            // Optional manual free pan any time (not tied to health)
+            if (enableManualFreePan)
             {
-                // Free camera mode: Move.x => world/camera-right X, Move.y => world Y (per spec)
                 var move = ReadMove();
-
-                // Horizontal along camera right axis
+                if (move.sqrMagnitude < inputDeadZone * inputDeadZone) move = Vector2.zero;
                 Vector3 desiredDelta = Vector3.zero;
                 if (Mathf.Abs(move.x) > 0.001f)
                 {
                     var right = Vector3.ProjectOnPlane(transform.right, Vector3.up).normalized;
                     desiredDelta += right * (move.x * freePanSpeed * Time.deltaTime);
                 }
-                // Vertical along world up using Move.y
                 if (Mathf.Abs(move.y) > 0.001f)
                 {
                     desiredDelta += Vector3.up * (move.y * freeElevateSpeed * Time.deltaTime);
                 }
-
-                // Smooth towards new position
-                var targetPos = transform.position + desiredDelta;
-                transform.position = Vector3.Lerp(transform.position, targetPos, 1f - Mathf.Exp(-freePanDamping * Time.deltaTime));
-
-                // Look at the last known target position to keep context
-                transform.LookAt(target.position);
-                return;
+                if (desiredDelta.sqrMagnitude > 0f)
+                {
+                    var targetPos = transform.position + desiredDelta;
+                    transform.position = Vector3.Lerp(transform.position, targetPos, 1f - Mathf.Exp(-freePanDamping * Time.deltaTime));
+                }
             }
 
-            // Follow mode (alive)
+            // Follow mode (alive) — simple follow, no live-pan
             Vector3 followAnchor = target.position;
+            _livePanOffset = Vector3.zero;
 
-            // Live pan support: allow panning relative to target without detaching
-            if (enableLivePan)
-            {
-                bool mod = ReadPanModifier();
-                Vector2 look = ReadLook();
-                if (mod || (!panModifierAction && look.sqrMagnitude > 0.0001f))
-                {
-                    // Horizontal pan on camera right (X component), ignore forward to avoid changing Z per spec
-                    if (Mathf.Abs(look.x) > 0.001f)
-                    {
-                        var right = Vector3.ProjectOnPlane(transform.right, Vector3.up).normalized;
-                        _livePanOffset += right * (look.x * livePanHorizontalSpeed * Time.deltaTime);
-                    }
-                    // Vertical pan (Look.y → world Y)
-                    if (Mathf.Abs(look.y) > 0.001f)
-                    {
-                        _livePanOffset += Vector3.up * (look.y * livePanVerticalSpeed * Time.deltaTime);
-                    }
-
-                    // Clamp horizontal radius from player on XZ plane
-                    Vector2 horiz = new Vector2(_livePanOffset.x, _livePanOffset.z);
-                    if (horiz.magnitude > livePanMaxRadius)
-                    {
-                        horiz = horiz.normalized * livePanMaxRadius;
-                        _livePanOffset.x = horiz.x; _livePanOffset.z = horiz.y;
-                    }
-                }
-                else
-                {
-                    // Recenter with spring
-                    _livePanOffset = Vector3.Lerp(_livePanOffset, Vector3.zero, 1f - Mathf.Exp(-livePanRecenterSpeed * Time.deltaTime));
-                }
-            }
-
-            var camRot = Quaternion.Euler(pitchDeg, yawDeg, 0f);
+            var camRot = rotationSource == RotationSource.Transform ? transform.rotation : Quaternion.Euler(pitchDeg, yawDeg, 0f);
             var desiredFollow = followAnchor + (camRot * offset.normalized) * _zoom + _livePanOffset;
             transform.position = Vector3.Lerp(transform.position, desiredFollow, 1f - Mathf.Exp(-smooth * Time.deltaTime));
-            transform.LookAt(followAnchor + _livePanOffset);
+            if (rotationSource == RotationSource.PitchYaw && lockLookAtTarget)
+            {
+                transform.LookAt(followAnchor + _livePanOffset);
+            }
         }
 
         private void EnsureInputs()
         {
             // If any action refs are used, ensure they're enabled
-            if (lookAction != null && !lookAction.action.enabled) lookAction.action.Enable();
             if (moveAction != null && !moveAction.action.enabled) moveAction.action.Enable();
             if (jumpAction != null && !jumpAction.action.enabled) jumpAction.action.Enable();
-            if (panModifierAction != null && !panModifierAction.action.enabled) panModifierAction.action.Enable();
 
-            if (_actions == null && (lookAction == null || moveAction == null || panModifierAction == null))
+            if (_actions == null && (moveAction == null))
             {
                 _actions = new InputSystem_Actions();
                 _actions.Player.Enable();
                 _actions.UI.Enable();
-                if (lookAction == null) _lookFallback = _actions.Player.Look;
                 if (moveAction == null) _moveFallback = _actions.Player.Move;
                 if (jumpAction == null) _jumpFallback = _actions.Player.Jump;
-                if (panModifierAction == null) _panModFallback = _actions.Player.Sprint; // Left Shift
-                if (debugLogs) Debug.Log("UniteCameraController: Using InputSystem_Actions fallback (Look/Move/Jump + Sprint as PanModifier).");
+                if (debugLogs) Debug.Log("UniteCameraController: Using InputSystem_Actions fallback (Move/Jump).");
             }
-        }
-
-        private Vector2 ReadLook()
-        {
-            if (lookAction != null) return lookAction.action.ReadValue<Vector2>();
-            if (_lookFallback != null) return _lookFallback.ReadValue<Vector2>();
-            return Vector2.zero;
         }
 
         private Vector2 ReadMove()
@@ -179,29 +133,20 @@ namespace MemeArena.CameraSystem
             return Vector2.zero;
         }
 
-        private bool ReadPanModifier()
-        {
-            if (panModifierAction != null) return panModifierAction.action.IsPressed();
-            if (_panModFallback != null) return _panModFallback.IsPressed();
-            return false;
-        }
-
         private void OnEnable()
         {
-            // Rebind to target health in case target was set in editor
-            BindTargetHealth(target);
+            // Nothing to bind; health is not used to control camera
         }
 
         private void OnDisable()
         {
-            UnbindTargetHealth();
             if (_actions != null)
             {
                 _actions.Player.Disable();
                 _actions.UI.Disable();
                 _actions.Dispose();
                 _actions = null;
-                _lookFallback = null; _moveFallback = null; _jumpFallback = null; _panModFallback = null;
+                _moveFallback = null; _jumpFallback = null;
             }
         }
 
@@ -209,48 +154,15 @@ namespace MemeArena.CameraSystem
         {
             target = newTarget;
             _livePanOffset = Vector3.zero;
-            BindTargetHealth(target);
         }
-
-        private void BindTargetHealth(Transform t)
+        private void OnValidate()
         {
-            UnbindTargetHealth();
-            if (!t) return;
-            _observedHealth = t.GetComponent<NetworkHealth>();
-            if (_observedHealth != null)
+            // Migrate legacy bool to enum for convenience if users toggle it in inspector
+            if (useTransformRotation)
             {
-                _observedHealth.OnHealthChanged += OnObservedHealthChanged;
-                _observedHealth.OnDeath += OnObservedDeath;
-                // Avoid assuming dead before first replicated value; wait for OnHealthChanged
-                _targetIsDead = false;
-                if (debugLogs) Debug.Log($"UniteCameraController: Bound to NetworkHealth on {t.name}, awaiting first health value...");
-            }
-            else
-            {
-                _targetIsDead = false;
+                rotationSource = RotationSource.Transform;
             }
         }
-
-        private void UnbindTargetHealth()
-        {
-            if (_observedHealth != null)
-            {
-                _observedHealth.OnHealthChanged -= OnObservedHealthChanged;
-                _observedHealth.OnDeath -= OnObservedDeath;
-                _observedHealth = null;
-            }
-        }
-
-        private void OnObservedHealthChanged(int current, int max)
-        {
-            _targetIsDead = current <= 0;
-            if (debugLogs) Debug.Log($"UniteCameraController: Observed target health changed: {current}/{max} → dead={_targetIsDead}");
-        }
-
-        private void OnObservedDeath()
-        {
-            _targetIsDead = true;
-            if (debugLogs) Debug.Log("UniteCameraController: Observed target death → entering free camera mode.");
-        }
+    // Health bindings removed; camera no longer reacts to health changes
     }
 }

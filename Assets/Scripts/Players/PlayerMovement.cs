@@ -20,6 +20,9 @@ namespace MemeArena.Players
         [Min(0.1f)] public float rotationSpeedDeg = 720f;
         public float gravity = -25f;
 
+    [Header("Input filtering")]
+    [Range(0f, 1f)] public float inputDeadZone = 0.15f;
+
     [Header("Input")]
     public InputActionReference moveAction; // Vector2 action ("Move")
     public InputActionReference attackAction; // Button action ("Attack")
@@ -130,17 +133,20 @@ namespace MemeArena.Players
         }
 
         float _fireCooldownTimer;
-        void FixedUpdate()
+    void FixedUpdate()
         {
             if (IsOwner)
             {
-                var mv = moveAction != null ? moveAction.action.ReadValue<Vector2>() : (_moveFallback != null ? _moveFallback.ReadValue<Vector2>() : Vector2.zero);
+        var mv = moveAction != null ? moveAction.action.ReadValue<Vector2>() : (_moveFallback != null ? _moveFallback.ReadValue<Vector2>() : Vector2.zero);
+        // Client-side filtering to reduce drift from tiny inputs (e.g., controller noise)
+        if (mv.sqrMagnitude < inputDeadZone * inputDeadZone) mv = Vector2.zero;
+        if (mv.sqrMagnitude > 1f) mv.Normalize();
                 if (debugLogs && !_loggedOwnerNonZero && mv.sqrMagnitude > 0.0001f)
                 {
                     _loggedOwnerNonZero = true;
                     Debug.Log($"PlayerMovement: Owner input detected {mv}");
                 }
-                SubmitInputServerRpc(mv, Time.fixedDeltaTime);
+        SubmitInputServerRpc(mv);
 
                 // Attack input: trigger a server RPC on the combat controller with a small cooldown
                 if (attackAction != null || _attackFallback != null)
@@ -215,8 +221,8 @@ namespace MemeArena.Players
                     transform.rotation = Quaternion.RotateTowards(transform.rotation, target, rotationSpeedDeg * Time.fixedDeltaTime);
                 }
 
-                // Watchdog: if no input received for > 1s, zero client move to avoid stale drift.
-                if (Time.time - _lastInputReceiveTime > 1.0f && _lastClientMove.sqrMagnitude > 0f)
+                // Watchdog: if no input received for a short time, zero client move to avoid stale drift.
+                if (Time.time - _lastInputReceiveTime > 0.35f && _lastClientMove.sqrMagnitude > 0f)
                 {
                     _lastClientMove = Vector2.zero;
                 }
@@ -224,7 +230,7 @@ namespace MemeArena.Players
         }
 
     [ServerRpc(RequireOwnership = false)]
-        public void SubmitInputServerRpc(Vector2 move, float dt, ServerRpcParams rpcParams = default)
+        public void SubmitInputServerRpc(Vector2 move, ServerRpcParams rpcParams = default)
         {
             // Validate the caller is the owner of this object to prevent spoofing.
             if (NetworkObject == null)
@@ -235,6 +241,9 @@ namespace MemeArena.Players
                     Debug.LogWarning($"PlayerMovement: Ignoring input from non-owner {rpcParams.Receive.SenderClientId} (owner={NetworkObject.OwnerClientId}).");
                 return;
             }
+            // Sanitize input: deadzone and clamp to unit circle
+            if (move.sqrMagnitude < inputDeadZone * inputDeadZone) move = Vector2.zero;
+            if (move.sqrMagnitude > 1f) move.Normalize();
             _lastClientMove = move;
             _lastInputReceiveTime = Time.time;
             if (debugLogs && !_loggedServerNonZero && move.sqrMagnitude > 0.0001f)

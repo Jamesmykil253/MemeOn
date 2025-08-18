@@ -19,7 +19,11 @@ namespace MemeArena.Combat
         /// Current health of the object.  Synchronised to clients for UI
         /// display but authority resides on the server.
         /// </summary>
-    private NetworkVariable<int> _currentHealth = new NetworkVariable<int>();
+    private NetworkVariable<int> _currentHealth = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
 
         /// <summary>
         /// Maximum health.  Set from a CharacterStats or via inspector.
@@ -37,13 +41,14 @@ namespace MemeArena.Combat
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
+            _currentHealth.OnValueChanged += OnHealthValueChanged;
             if (IsServer)
             {
-                _currentHealth.Value = maxHealth;
+                _currentHealth.Value = maxHealth; // sets and replicates to clients
+                OnHealthChanged?.Invoke(_currentHealth.Value, maxHealth);
             }
-            // Broadcast initial value and listen for changes on all peers.
-            OnHealthChanged?.Invoke(_currentHealth.Value, maxHealth);
-            _currentHealth.OnValueChanged += OnHealthValueChanged;
+            // Clients will receive an OnValueChanged when the server replication arrives;
+            // avoid firing OnHealthChanged here with an uninitialized (0) value.
         }
 
     public override void OnDestroy()
