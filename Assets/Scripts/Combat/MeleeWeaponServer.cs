@@ -20,6 +20,7 @@ namespace MemeArena.Combat
             var origin = owner.transform.position + Vector3.up * 0.9f;
             var dir = owner.transform.forward;
             var center = origin + dir * range;
+            var myTeam = owner ? owner.GetComponent<MemeArena.Network.TeamId>() : null;
 
             var hits = Physics.OverlapSphere(center, radius, hitMask, QueryTriggerInteraction.Ignore);
             bool hitAny = false;
@@ -29,10 +30,25 @@ namespace MemeArena.Combat
                 // Ignore self or same root
                 if (owner != null && h.transform.root == owner.transform.root) continue;
 
+                // Team gate: skip friendlies if both sides have TeamId
+                if (myTeam != null)
+                {
+                    var targetTeam = h.GetComponentInParent<MemeArena.Network.TeamId>();
+                    if (targetTeam != null && targetTeam.team == myTeam.team) continue;
+                }
+
                 var dmg = h.GetComponentInParent<IDamageable>();
                 if (dmg != null)
                 {
-                    dmg.ApplyDamage(dmgAmount, owner, h.ClosestPoint(center));
+                    var hitPoint = h.ClosestPoint(center);
+                    dmg.ApplyDamage(dmgAmount, owner, hitPoint);
+                    // Raise unified combat event for success
+                    var attackerNO = owner ? owner.GetComponent<Unity.Netcode.NetworkObject>() : null;
+                    var victimNO = h.GetComponentInParent<Unity.Netcode.NetworkObject>();
+                    if (attackerNO && victimNO)
+                    {
+                        CombatEvents.RaiseSuccessfulHit(attackerNO.NetworkObjectId, victimNO.NetworkObjectId, dmgAmount);
+                    }
                     hitAny = true;
                 }
             }

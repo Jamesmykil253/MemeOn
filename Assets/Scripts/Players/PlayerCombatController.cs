@@ -168,12 +168,20 @@ namespace MemeArena.Players
             var origin = transform.position + Vector3.up * 0.9f;
             var dir = transform.forward;
             var center = origin + dir * meleeRange;
+            var myTeam = GetComponent<MemeArena.Network.TeamId>();
             var hits = Physics.OverlapSphere(center, meleeRadius, meleeHitMask, QueryTriggerInteraction.Ignore);
             bool hitAny = false;
             foreach (var h in hits)
             {
                 // Ignore self or same root
                 if (h.transform.root == transform.root) continue;
+
+                // Team gate: skip friendlies if both sides have TeamId
+                if (myTeam != null)
+                {
+                    var targetTeam = h.GetComponentInParent<MemeArena.Network.TeamId>();
+                    if (targetTeam != null && targetTeam.team == myTeam.team) continue;
+                }
 
                 var dmg = h.GetComponentInParent<MemeArena.Combat.IDamageable>();
                 if (dmg != null)

@@ -1,5 +1,5 @@
 // Meme Online Battle Arena - MemeMOBASetupWindow
-#if UNITY_EDITOR
+#if false
 using UnityEditor;
 using UnityEngine;
 using System.IO;

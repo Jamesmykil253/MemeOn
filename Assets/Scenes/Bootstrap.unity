@@ -136,7 +136,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 070946176ff184391a1751c8a6d6e617, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameplaySceneName: Bootstrap
+  gameplaySceneName: Game
 --- !u!1001 &836280524
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -197,10 +197,7 @@ PrefabInstance:
       propertyPath: autoStartInEditor
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 7640120964295765541, guid: 7b4fec30a17d44babb8466a30374a81a, type: 3}
-      propertyPath: m_FirstSelected
-      value: 
-      objectReference: {fileID: 3801943146907742738, guid: 1aba407840cb84e2a91147e6b5c5caea, type: 3}
+    
     - target: {fileID: 7845128355446834808, guid: 7b4fec30a17d44babb8466a30374a81a, type: 3}
       propertyPath: networkPrefabs.Array.size
       value: 4
@@ -229,91 +226,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 261311247}
   m_SourcePrefab: {fileID: 100100000, guid: 7b4fec30a17d44babb8466a30374a81a, type: 3}
---- !u!1001 &1350490018
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 2646020793246414304, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2646020793246414304, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2737928837451661924, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2766844480127120938, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2766844480127120938, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3706101364353412078, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3706101364353412078, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 2.52112
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 6.28754
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5229562877086582619, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6851279749490298090, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
-      propertyPath: m_Name
-      value: UI
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 46ca1138fdd11407a85ba0ffe30bef9b, type: 3}
 --- !u!1 &1583820786
 GameObject:
   m_ObjectHideFlags: 0
@@ -327,7 +239,6 @@ GameObject:
   - component: {fileID: 1583820787}
   - component: {fileID: 1583820790}
   - component: {fileID: 1583820792}
-  - component: {fileID: 1583820793}
   - component: {fileID: 1583820794}
   m_Layer: 0
   m_Name: Main Camera
@@ -343,7 +254,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1583820786}
-  m_Enabled: 0
+  m_Enabled: 1
 --- !u!20 &1583820788
 Camera:
   m_ObjectHideFlags: 0
@@ -467,32 +378,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   debugLogs: 1
---- !u!114 &1583820793
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1583820786}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d687537154440a3913a9a3c7977978c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  CameraTarget: {fileID: 206975841182195276, guid: 33c144eedd4554e49af376a44c0a3bf4, type: 3}
-  FollowDistance: 30
-  MaxFollowDistance: 100
-  MinFollowDistance: 2
-  ElevationAngle: 30
-  MaxElevationAngle: 85
-  MinElevationAngle: 0
-  OrbitalAngle: 0
-  CameraMode: 0
-  MovementSmoothing: 1
-  RotationSmoothing: 1
-  MovementSmoothingValue: 4
-  RotationSmoothingValue: 5
-  MoveSensitivity: 2
 --- !u!114 &1583820794
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -530,4 +415,3 @@ SceneRoots:
   m_Roots:
   - {fileID: 1583820789}
   - {fileID: 836280524}
-  - {fileID: 1350490018}

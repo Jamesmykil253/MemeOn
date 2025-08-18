@@ -1,58 +1,470 @@
-/mnt/data/
-├── DebugPack_Staging/
-│   └── Assets/
-│       └── Scripts/
-│           ├── Combat/
-│           │   ├── [CrowdControlServer.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Combat/CrowdControlServer.cs)
-│           │   ├── [MeleeWeaponServer.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Combat/MeleeWeaponServer.cs)
-│           │   └── [ProjectileServer.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Combat/ProjectileServer.cs)
-│           └── Debug/
-│               └── [DebugColorState.cs](sandbox:/mnt/data/DebugPack_Staging/Assets/Scripts/Debug/DebugColorState.cs)
-├── PrefabAuditPack/
-│   └── Assets/
-│       └── Editor/
-│           ├── [MissingScriptsReport.cs](sandbox:/mnt/data/PrefabAuditPack/Assets/Editor/MissingScriptsReport.cs)
-│           ├── [PrefabAutoWire.cs](sandbox:/mnt/data/PrefabAuditPack/Assets/Editor/PrefabAutoWire.cs)
-│           └── [PrefabDependencyValidator.cs](sandbox:/mnt/data/PrefabAuditPack/Assets/Editor/PrefabDependencyValidator.cs)
-├── UniteCameraPack/
-│   └── Assets/
-│       └── Scripts/
-│           └── Camera/
-│               ├── [CameraBootstrap.cs](sandbox:/mnt/data/UniteCameraPack/Assets/Scripts/Camera/CameraBootstrap.cs)
-│               ├── [LimitedViewController.cs](sandbox:/mnt/data/UniteCameraPack/Assets/Scripts/Camera/LimitedViewController.cs)
-│               └── [UniteCameraController.cs](sandbox:/mnt/data/UniteCameraPack/Assets/Scripts/Camera/UniteCameraController.cs)
-├── [MOBA_AllScripts_2025-08-16.zip](sandbox:/mnt/data/MOBA_AllScripts_2025-08-16.zip)
-├── [MOBA_CoreScripts_Full_2025-08-16.zip](sandbox:/mnt/data/MOBA_CoreScripts_Full_2025-08-16.zip)
-├── [MOBA_DebugColorPack_2025-08-16.zip](sandbox:/mnt/data/MOBA_DebugColorPack_2025-08-16.zip)
-├── [MOBA_PrefabAuditPack_2025-08-16.zip](sandbox:/mnt/data/MOBA_PrefabAuditPack_2025-08-16.zip)
-├── [UniteCameraPack_2025-08-16.zip](sandbox:/mnt/data/UniteCameraPack_2025-08-16.zip)
-├── MOBA_CoreScripts_Full/
-│   ├── AI/
-│   │   ├── [AIBehaviorTree.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/AI/AIBehaviorTree.cs)
-│   │   ├── [AIBlackboard.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/AI/AIBlackboard.cs)
-│   │   └── [AIController.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/AI/AIController.cs)
-│   ├── Combat/
-│   │   ├── [CCTargetServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/CCTargetServer.cs)
-│   │   ├── [CrowdControlServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/CrowdControlServer.cs)
-│   │   ├── [MeleeWeaponServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/MeleeWeaponServer.cs)
-│   │   └── [ProjectileServer.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Combat/ProjectileServer.cs)
-│   ├── Debug/
-│   │   └── [AIStateDebugColor.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Debug/AIStateDebugColor.cs)
-│   └── Shared/
-│       └── [Team.cs](sandbox:/mnt/data/MOBA_CoreScripts_Full/Shared/Team.cs)
-├── Executive Concept.md
-├── DOCUMENT 1 — GAME DESIGN DOCUMENT.md
-├── DOCUMENT 2 — GAME DESIGN DOCUMENT (GDD).md
-├── DOCUMENT 3 — TECHNICAL DESIGN DOCUMENT (TDD).MD
-├── DOCUMENT 4 — PROJECT PLAN.md
-├── DOCUMENT 5 — ASSET LIST.md
-├── DOCUMENT 6 — DEVELOPMENT CHECKLIST.md
-├── DOCUMENT 7 — AI LOGIC REFERENCE (FSM + BT).md
-├── Engineering Checklist.md
-├── FSM.md
-├── Game Design Document.md
-├── Implementation notes.md
-├── PREFAB INTEGRATION GUIDE.md
-├── Project Plan.md
-├── Technical Design Document.md
-└── Usage Notes for AISpawnerManager.md
+Snapshot at 2025-08-18 04:17:59
+Adaptive Performance/
+    Provider/
+        Simulator Provider Loader.asset
+    Settings/
+        Simulator Provider Settings.asset
+    AdaptivePerformanceGeneralSettings.asset
+    Provider
+    Settings
+Animations/
+Art/
+    Characters/
+    Environment/
+    Props/
+    UI/
+    Characters
+    Environment
+    Props
+    UI
+Audio/
+Editor/
+    com.unity.mobile.notifications/
+        NotificationSettings.asset
+    BuildCorePrefabs.cs
+    BuildSettingsAuditor.cs
+    BuildUIPrefab.cs
+    com.unity.mobile.notifications
+    DeprecatedScanner.cs
+    DevelopmentAuditor.cs
+    EnemyPrefabUIAuditor.cs
+    FilesystemUnifier.cs
+    MemeArena.Editor.asmref
+    MemeMOBASetupWindow.cs
+    PrefabLayoutAuditor.cs
+    ProjectFolderSetup.cs
+    ProjectPlayabilityAuditor.cs
+Materials/
+    Enemy.mat
+    Goal.mat
+    Player.mat
+    Projectile.mat
+Prefabs/
+    AI/
+    Collectables/
+    Enemies/
+    Environment/
+    Game/
+    Misc/
+        Text Popup.prefab
+        Text Popup-1.prefab
+        TextMeshPro - Prefab 1.prefab
+        TextMeshPro - Prefab 2.prefab
+    Network/
+        NetworkBootstrap.prefab
+    Players/
+    Projectiles/
+    Spawners/
+    UI/
+        World/
+        UI.prefab
+        World
+    AI
+    Collectables
+    Enemies
+    Environment
+    Game
+    Misc
+    Network
+    Players
+    Projectiles
+    Spawners
+    UI
+Resources/
+    NetworkPrefabs/
+        AISpawnManager.prefab
+        Coin Spawner.prefab
+        Coin.prefab
+        Enemy.prefab
+        MatchManager.prefab
+        MeleeHitbox.prefab
+        Player.prefab
+        Projectile.prefab
+    NetworkPrefabs
+Scenes/
+    Game/
+        Game.unity
+        NavMesh-Environment.asset
+    Bootstrap.unity
+    Game
+ScriptableObjects/
+    AIConfig.asset
+    CharacterStats.asset
+    CharacterStatsEnemy1.asset
+Scripts/
+    AI/
+        BT/
+            AIBehaviorTree.cs
+            BTAction.cs
+            BTComposite.cs
+            BTCondition.cs
+            BTNode.cs
+            BTSelector.cs
+            BTSequence.cs
+        Core/
+            AIBlackboard.cs
+            AIConfig.cs
+            AIController.cs
+            AIController.StateId.cs
+            AIState.cs
+            AITags.cs
+            BehaviorTree.cs
+            Blackboard.cs
+            CharacterStats.cs
+            EnemyController.cs
+            EnemyLevel.cs
+            HitEvents.cs
+        FSM/
+            States/
+                AlertState.cs
+                DeadState.cs
+                EvadeState.cs
+                IdleState.cs
+                MeleeAttackState.cs
+                PursueState.cs
+                RangedAttackState.cs
+                ReturnToSpawnState.cs
+                StunnedState.cs
+            IState.cs
+            StateMachine.cs
+            States
+        BT
+        Core
+        FSM
+    Camera/
+        CameraBootstrap.cs
+        LimitedViewController.cs
+        UniteCameraController.cs
+    Combat/
+        BoostedAttackTracker.cs
+        CCTargetServer.cs
+        CrowdControlServer.cs
+        Damageable.cs
+        DamageTypes.cs
+        MeleeWeaponServer.cs
+        NetworkHealth.cs
+        ProjectileServer.cs
+    Core/
+        CombatEvents.cs
+    Debug/
+        DebugColorState.cs
+        NetworkDamageFlash.cs
+        NetworkStateColorSync.cs
+        PlayerStateColorSync.cs
+    Editor/
+        MemeArena.Editor.asmdef
+    Game/
+        DepositZone.cs
+        MatchManager.cs
+    Items/
+        Coin.cs
+        PlayerInventory.cs
+    Network/
+        NetworkGameManager.cs
+        NetworkPrefabsRegistrar.cs
+        ProjectConstants.cs
+        SceneLoaderOnHost.cs
+        ServerSceneLoader.cs
+    Players/
+        PlayerCombatController.cs
+        PlayerController.cs
+        PlayerInventory.cs
+        PlayerMovement.cs
+        PlayerStats.cs
+    Runtime/
+        MemeArena.Runtime.asmdef
+    Shared/
+        Team.cs
+    Spawning/
+        AISpawnerManager.cs
+        CoinSpawner.cs
+    Stats/
+        ILevelProvider.cs
+    UI/
+        BillboardUI.cs
+        BoostedAttackUI.cs
+        CoinCounterUI.cs
+        EnemyUnitUI.cs
+        EnemyWorldUI.cs
+        HealthBarUI.cs
+        LevelUI.cs
+        MatchEventsUI.cs
+        MatchHUD.cs
+        PersistentEventSystem.cs
+        PlayerHUDBinder.cs
+        PlayerUIBinder.cs
+        XPBarUI.cs
+    Utilities/
+        FixedTime.cs
+        Layers.cs
+        LineOfSight.cs
+        NetworkHelpers.cs
+        ObjectPool.cs
+        RuntimeBootstrapValidator.cs
+        TeamId.cs
+    AI
+    Camera
+    Combat
+    Core
+    Debug
+    Editor
+    Game
+    Items
+    Network
+    Players
+    Runtime
+    Shared
+    Spawning
+    Stats
+    UI
+    Utilities
+Settings/
+    Mobile_Renderer.asset
+    Mobile_RPAsset.asset
+    PC_Renderer.asset
+    PC_RPAsset.asset
+    SampleSceneProfile.asset
+    UniversalRenderPipelineGlobalSettings.asset
+Tests/
+    EditMode/
+        DeprecatedScannerTests.cs
+        EditorAsmdefReference.asmref
+    PlayMode/
+        NetworkBootstrapTests.cs
+        PlayBootstrapSmokeTests.cs
+    EditMode
+    MemeArena.Tests.asmdef
+    PlayMode
+    README.md
+TextMesh Pro/
+    Examples & Extras/
+        Fonts/
+            Anton OFL.txt
+            Anton.ttf
+            Bangers - OFL.txt
+            Bangers.ttf
+            Electronic Highway Sign.TTF
+            Oswald-Bold - OFL.txt
+            Oswald-Bold.ttf
+            Roboto-Bold - AFL.txt
+            Roboto-Bold - License.txt
+            Roboto-Bold.ttf
+            Unity - OFL.txt
+            Unity.ttf
+        Materials/
+            Crate - Surface Shader Scene.mat
+            Crate - URP.mat
+            Ground - Logo Scene.mat
+            Ground - Surface Shader Scene.mat
+            Ground - URP.mat
+            Small Crate_diffuse.mat
+        Prefabs/
+        Resources/
+            Color Gradient Presets/
+                Blue to Purple - Vertical.asset
+                Dark to Light Green - Vertical.asset
+                Light to Dark Green - Vertical.asset
+                Yellow to Orange - Vertical.asset
+            Fonts & Materials/
+                Anton SDF - Drop Shadow.mat
+                Anton SDF - Outline.mat
+                Anton SDF - Sunny Days.mat
+                Anton SDF.asset
+                Bangers SDF - Drop Shadow - 2 Pass.mat
+                Bangers SDF - Drop Shadow.mat
+                Bangers SDF - Outline.mat
+                Bangers SDF Glow.mat
+                Bangers SDF Logo - URP.mat
+                Bangers SDF Logo.mat
+                Bangers SDF.asset
+                Electronic Highway Sign SDF.asset
+                LiberationSans SDF - Metalic Green.mat
+                LiberationSans SDF - Overlay.mat
+                LiberationSans SDF - Soft Mask.mat
+                Oswald Bold SDF.asset
+                Roboto-Bold SDF - Drop Shadow.mat
+                Roboto-Bold SDF - HDRP Unlit.mat
+                Roboto-Bold SDF - Surface.mat
+                Roboto-Bold SDF - URP.mat
+                Roboto-Bold SDF.asset
+                Unity SDF - HDRP LIT - Bloom.mat
+                Unity SDF - HDRP LIT - Outline.mat
+                Unity SDF.asset
+            Sprite Assets/
+                Default Sprite Asset.asset
+                DropCap Numbers.asset
+            Color Gradient Presets
+            Fonts & Materials
+            Sprite Assets
+        Scenes/
+            28 - HDRP Shader Example/
+                Sky and Fog Volume Profile.asset
+            01-  Single Line TextMesh Pro.unity
+            02 - Multi-line TextMesh Pro.unity
+            03 - Line Justification.unity
+            04 - Word Wrapping.unity
+            05 - Style Tags.unity
+            06 - Extra Rich Text Examples.unity
+            07 - Superscript & Subscript Example.unity
+            08 - Improved Text Alignment.unity
+            09 - Margin Tag Example.unity
+            10 - Bullets & Numbered List Example.unity
+            11 - The Style Tag.unity
+            12 - Link Example.unity
+            12a - Text Interactions.unity
+            13 - Soft Hyphenation.unity
+            14 - Multi Font & Sprites.unity
+            15 - Inline Graphics & Sprites.unity
+            16 - Linked text overflow mode example.unity
+            17 - Old Computer Terminal.unity
+            18 - ScrollRect & Masking & Layout.unity
+            19 - Masking Texture & Soft Mask.unity
+            20 - Input Field with Scrollbar.unity
+            21 - Script Example.unity
+            22 - Basic Scripting Example.unity
+            23 - Animating Vertex Attributes.unity
+            24 - Surface Shader Example URP.unity
+            24 - Surface Shader Example.unity
+            25 - Sunny Days Example.unity
+            26 - Dropdown Placeholder Example.unity
+            27 - Double Pass Shader Example.unity
+            28 - HDRP Shader Example
+            28 - HDRP Shader Example.unity
+            Benchmark (Floating Text).unity
+        Scripts/
+            Benchmark01.cs
+            Benchmark01_UGUI.cs
+            Benchmark02.cs
+            Benchmark03.cs
+            Benchmark04.cs
+            CameraController.cs
+            ChatController.cs
+            DropdownSample.cs
+            EnvMapAnimator.cs
+            ObjectSpin.cs
+            ShaderPropAnimator.cs
+            SimpleScript.cs
+            SkewTextExample.cs
+            TeleType.cs
+            TextConsoleSimulator.cs
+            TextMeshProFloatingText.cs
+            TextMeshSpawner.cs
+            TMP_DigitValidator.cs
+            TMP_ExampleScript_01.cs
+            TMP_FrameRateCounter.cs
+            TMP_PhoneNumberValidator.cs
+            TMP_TextEventCheck.cs
+            TMP_TextEventHandler.cs
+            TMP_TextInfoDebugTool.cs
+            TMP_TextSelector_A.cs
+            TMP_TextSelector_B.cs
+            TMP_UiFrameRateCounter.cs
+            TMPro_InstructionOverlay.cs
+            VertexColorCycler.cs
+            VertexJitter.cs
+            VertexShakeA.cs
+            VertexShakeB.cs
+            VertexZoom.cs
+            WarpTextExample.cs
+        Sprites/
+            Default Sprites.png
+            DropCap Numbers.psd
+        Textures/
+            Brushed Metal 3.jpg
+            Floor Cement.jpg
+            Floor Tiles 1 - diffuse.jpg
+            Fruit Jelly (B&W).jpg
+            Gradient Diagonal (Color).jpg
+            Gradient Horizontal (Color).jpg
+            Gradient Vertical (Color).jpg
+            Mask Zig-n-Zag.psd
+            Small Crate_diffuse.jpg
+            Small Crate_normal.jpg
+            Sunny Days - Seamless.jpg
+            Text Overflow - Linked Text Image 1.png
+            Text Overflow - Linked Text UI Screenshot.png
+            Wipe Pattern - Circle.psd
+            Wipe Pattern - Diagonal.psd
+            Wipe Pattern - Radial Double.psd
+            Wipe Pattern - Radial Quad.psd
+        Fonts
+        Materials
+        Prefabs
+        Resources
+        Scenes
+        Scripts
+        Sprites
+        Textures
+    Fonts/
+        LiberationSans - OFL.txt
+        LiberationSans.ttf
+    Resources/
+        Fonts & Materials/
+            LiberationSans SDF - Drop Shadow.mat
+            LiberationSans SDF - Fallback.asset
+            LiberationSans SDF - Outline.mat
+            LiberationSans SDF.asset
+        Sprite Assets/
+            EmojiOne.asset
+        Style Sheets/
+            Default Style Sheet.asset
+        Fonts & Materials
+        LineBreaking Following Characters.txt
+        LineBreaking Leading Characters.txt
+        Sprite Assets
+        Style Sheets
+        TMP Settings.asset
+    Shaders/
+        SDFFunctions.hlsl
+        TMP_Bitmap.shader
+        TMP_Bitmap-Custom-Atlas.shader
+        TMP_Bitmap-Mobile.shader
+        TMP_SDF Overlay.shader
+        TMP_SDF SSD.shader
+        TMP_SDF.shader
+        TMP_SDF-HDRP LIT.shadergraph
+        TMP_SDF-HDRP UNLIT.shadergraph
+        TMP_SDF-Mobile Masking.shader
+        TMP_SDF-Mobile Overlay.shader
+        TMP_SDF-Mobile SSD.shader
+        TMP_SDF-Mobile.shader
+        TMP_SDF-Mobile-2-Pass.shader
+        TMP_SDF-Surface.shader
+        TMP_SDF-Surface-Mobile.shader
+        TMP_SDF-URP Lit.shadergraph
+        TMP_SDF-URP Unlit.shadergraph
+        TMP_Sprite.shader
+        TMPro.cginc
+        TMPro_Mobile.cginc
+        TMPro_Properties.cginc
+        TMPro_Surface.cginc
+    Sprites/
+        EmojiOne Attribution.txt
+        EmojiOne.json
+        EmojiOne.png
+    Examples & Extras
+    Fonts
+    Resources
+    Shaders
+    Sprites
+ThirdParty/
+Adaptive Performance
+Animations
+Art
+Audio
+DefaultNetworkPrefabs.asset
+Editor
+FILESYSTEM_SNAPSHOT.txt
+InputSystem_Actions.cs
+InputSystem_Actions.inputactions
+Materials
+Prefabs
+Resources
+Scenes
+ScriptableObjects
+Scripts
+Settings
+Tests
+TextMesh Pro
+ThirdParty
+UI_Guide.md

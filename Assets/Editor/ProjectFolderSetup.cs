@@ -1,5 +1,5 @@
 // Meme Online Battle Arena - ProjectFolderSetup
-#if UNITY_EDITOR
+#if false
 using UnityEditor;
 using UnityEngine;
 using System.IO;

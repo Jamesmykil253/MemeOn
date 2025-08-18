@@ -69,7 +69,7 @@ namespace MemeArena.Utilities
             }
 
             // Enforce single AudioListener: keep main camera's, disable others
-            var listeners = FindObjectsByType<AudioListener>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            var listeners = SafeFindObjectsOfType<AudioListener>(true);
             if (listeners != null && listeners.Length > 1)
             {
                 var main = Camera.main != null ? Camera.main.GetComponent<AudioListener>() : null;
@@ -91,7 +91,7 @@ namespace MemeArena.Utilities
             }
 
             // Check for PlayerMovement objects that are not marked as PlayerObject (usually scene-placed players)
-            var movers = FindObjectsByType<MemeArena.Players.PlayerMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            var movers = SafeFindObjectsOfType<MemeArena.Players.PlayerMovement>(false);
             int nonPlayerObjects = 0;
             foreach (var mv in movers)
             {
@@ -152,7 +152,7 @@ namespace MemeArena.Utilities
                              ?? FindTypeByFullName("MemeArena.UI.PlayerUIBinder");
             if (binderType == null) return;
 
-            var canvases = FindObjectsByType<Canvas>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            var canvases = SafeFindObjectsOfType<Canvas>(false);
             if (canvases == null || canvases.Length == 0) return;
 
             // Types that indicate this canvas is a HUD
@@ -205,6 +205,28 @@ namespace MemeArena.Utilities
                 {
                     canvas.gameObject.AddComponent(binderType);
                     Debug.Log($"RuntimeBootstrapValidator: Added PlayerUIBinder to Canvas '{canvas.name}'.");
+                }
+            }
+        }
+
+        private static T[] SafeFindObjectsOfType<T>(bool includeInactive)
+        {
+            // Prefer modern API but fall back to legacy for compatibility across Unity versions
+            try
+            {
+                var flags = includeInactive ? FindObjectsInactive.Include : FindObjectsInactive.Exclude;
+                return UnityEngine.Object.FindObjectsByType<T>(flags, FindObjectsSortMode.None);
+            }
+            catch
+            {
+                try
+                {
+                    return UnityEngine.Object.FindObjectsOfType<T>(includeInactive);
+                }
+                catch
+                {
+                    // Last-resort: return empty array to avoid null checks elsewhere
+                    return new T[0];
                 }
             }
         }

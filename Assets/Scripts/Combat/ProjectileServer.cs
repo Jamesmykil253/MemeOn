@@ -74,20 +74,38 @@ namespace MemeArena.Combat
             if (!IsServer) return;
             // Ignore collisions with self or owner.
             if (other.gameObject == gameObject) return;
-        // Check for health component on parent chains to support child hitboxes.
-        NetworkHealth health = other.GetComponentInParent<NetworkHealth>();
+            // Check for damage interface first (preferred), then legacy health.
+            var damageable = other.GetComponentInParent<IDamageable>();
+            NetworkHealth health = other.GetComponentInParent<NetworkHealth>();
             TeamId targetTeam = other.GetComponentInParent<TeamId>();
-        if (health != null && targetTeam != null)
+            if (targetTeam != null)
             {
                 // Only hit opposing teams.
                 if (targetTeam.team != ownerTeam)
                 {
-                    if (debugLogs)
-                        Debug.Log($"ProjectileServer(Server) hit valid target {other.name} team={targetTeam.team}");
-            health.TakeDamageServerRpc(damage, ownerClientId);
-                    NotifyOwnerSuccess();
-                    Despawn();
-                    return;
+                    if (debugLogs) Debug.Log($"ProjectileServer(Server) hit candidate target {other.name} team={targetTeam.team}");
+                    bool applied = false;
+                    if (damageable != null)
+                    {
+                        damageable.ApplyDamage(damage, gameObject, other.ClosestPoint(transform.position));
+                        applied = true;
+                    }
+                    else if (health != null)
+                    {
+                        health.ApplyDamageServer(damage, ownerClientId);
+                        applied = true;
+                    }
+                    if (applied)
+                    {
+                        // Raise unified success event when possible
+                        ulong victimId = 0UL;
+                        var victimNO = other.GetComponentInParent<NetworkObject>();
+                        if (victimNO) victimId = victimNO.NetworkObjectId;
+                        CombatEvents.RaiseSuccessfulHit(ownerObjectId, victimId, damage);
+                        NotifyOwnerSuccess();
+                        Despawn();
+                        return;
+                    }
                 }
                 else if (debugLogs)
                 {
@@ -99,6 +117,7 @@ namespace MemeArena.Combat
             if (other.gameObject.layer == ProjectConstants.Layers.Environment)
             {
                 if (debugLogs) Debug.Log($"ProjectileServer(Server) hit environment: {other.name}");
+                CombatEvents.RaiseFailedHit(ownerObjectId, 0UL, "Environment");
                 NotifyOwnerFailure();
                 Despawn();
             }

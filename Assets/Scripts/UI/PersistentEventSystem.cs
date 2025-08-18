@@ -11,6 +11,8 @@ namespace MemeArena.UI
     {
         private static PersistentEventSystem s_instance;
         private EventSystem _eventSystem;
+    private static bool s_cleaning;
+    private static bool s_applicationQuitting = false;
 
         private void Awake()
         {
@@ -22,6 +24,44 @@ namespace MemeArena.UI
             s_instance = this;
             DontDestroyOnLoad(gameObject);
 
+            EnsureLocalEventSystem();
+            EnforceSingleEventSystem();
+        }
+
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            // Early sweeps in case other systems spawn EventSystems on startup
+            StartCoroutine(StartupSweep());
+        }
+
+        private void OnApplicationQuit()
+        {
+            s_applicationQuitting = true;
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        private System.Collections.IEnumerator StartupSweep()
+        {
+            // Run a few frames to catch late creators
+            for (int i = 0; i < 10; i++)
+            {
+                EnforceSingleEventSystem();
+                yield return null;
+            }
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            EnforceSingleEventSystem();
+        }
+
+        private void EnsureLocalEventSystem()
+        {
             _eventSystem = GetComponent<EventSystem>();
             if (_eventSystem == null)
             {
@@ -35,7 +75,6 @@ namespace MemeArena.UI
                 var standalone = GetComponent<StandaloneInputModule>();
                 if (standalone == null)
                 {
-                    // Try to add InputSystem module by reflection; fallback to Standalone
                     var t = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
                     if (t != null)
                     {
@@ -49,25 +88,84 @@ namespace MemeArena.UI
             }
         }
 
-        private void OnEnable()
+        private void EnforceSingleEventSystem()
         {
-            SceneManager.sceneLoaded += OnSceneLoaded;
-        }
-
-        private void OnDisable()
-        {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-        }
-
-        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            // Remove any extra EventSystems introduced by the new scene
-            var all = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            foreach (var es in all)
+            if (s_cleaning) return;
+            if (s_applicationQuitting) return;
+            s_cleaning = true;
+            try
             {
-                if (es == null) continue;
-                if (es.gameObject == this.gameObject) continue;
-                Destroy(es.gameObject);
+                EventSystem[] all = null;
+                try
+                {
+                    all = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                }
+                catch
+                {
+                    // Fallback for older Unity versions
+                    all = UnityEngine.Object.FindObjectsOfType<EventSystem>(true);
+                }
+                foreach (var es in all ?? new EventSystem[0])
+                {
+                    if (es == null) continue;
+                    var go = es.gameObject;
+                    if (go == this.gameObject) continue;
+
+                    try
+                    {
+                        // Determine if this is a stand-alone EventSystem container (safe to destroy whole GO)
+                        var components = go.GetComponents<Component>();
+                        bool onlyEventStuff = true;
+                        foreach (var c in components)
+                        {
+                            if (c == null) continue;
+                            if (c is Transform) continue;
+                            if (c is EventSystem) continue;
+                            if (c is StandaloneInputModule) continue;
+
+                            var tInput = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+                            if (tInput != null && tInput.IsInstanceOfType(c)) continue;
+
+                            // Found something else; not safe to destroy whole GO
+                            onlyEventStuff = false;
+                            break;
+                        }
+
+                        if (onlyEventStuff)
+                        {
+                            Destroy(go);
+                            continue;
+                        }
+
+                        // Otherwise, strip EventSystem and input modules only
+                        var ev = go.GetComponent<EventSystem>();
+                        if (ev) Destroy(ev);
+
+                        var sim = go.GetComponents<StandaloneInputModule>();
+                        if (sim != null)
+                        {
+                            foreach (var m in sim) if (m) Destroy(m);
+                        }
+
+                        var t = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+                        if (t != null)
+                        {
+                            var comps = go.GetComponents(t);
+                            foreach (var c in comps)
+                            {
+                                if (c is Component comp) Destroy(comp);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"PersistentEventSystem: Failed cleaning duplicate EventSystem: {ex.Message}");
+                    }
+                }
+            }
+            finally
+            {
+                s_cleaning = false;
             }
         }
     }

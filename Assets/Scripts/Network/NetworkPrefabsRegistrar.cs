@@ -24,7 +24,7 @@ namespace MemeArena.Networking
         {
             var nm = NetworkManager.Singleton;
             if (!nm) { Debug.LogWarning("No NetworkManager.Singleton found for registrar."); return; }
-            var list = networkPrefabs;
+            var list = networkPrefabs ?? new List<GameObject>();
             // Fallback: load from Resources if requested and explicit list is empty
             if (autoLoadFromResources && (list == null || list.Count == 0))
             {
@@ -39,14 +39,31 @@ namespace MemeArena.Networking
             foreach (var prefab in list)
             {
                 if (!prefab) continue;
-                var found = false;
-                foreach (var entry in nm.NetworkConfig.Prefabs.Prefabs)
+                try
                 {
-                    if (entry.Prefab == prefab) { found = true; break; }
+                    bool found = false;
+                    var prefabsList = nm.NetworkConfig?.Prefabs?.Prefabs;
+                    if (prefabsList != null)
+                    {
+                        foreach (var entry in prefabsList)
+                        {
+                            if (entry != null && entry.Prefab == prefab) { found = true; break; }
+                        }
+                        if (!found)
+                        {
+                            // Use public API to add if available
+                            nm.NetworkConfig.Prefabs.Add(new NetworkPrefab { Prefab = prefab });
+                            if (Application.isEditor) Debug.Log($"NetworkPrefabsRegistrar: Registered prefab {prefab.name} with NetworkManager.");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning("NetworkPrefabsRegistrar: NetworkManager.NetworkConfig.Prefabs is null or inaccessible.");
+                    }
                 }
-                if (!found)
+                catch (System.Exception ex)
                 {
-                    nm.NetworkConfig.Prefabs.Add(new NetworkPrefab { Prefab = prefab });
+                    Debug.LogWarning($"NetworkPrefabsRegistrar: Failed to register prefab {prefab?.name}: {ex.Message}");
                 }
             }
 

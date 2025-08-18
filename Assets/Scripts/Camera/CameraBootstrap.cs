@@ -11,14 +11,30 @@ namespace MemeArena.CameraSystem
 
         private void Awake()
         {
+            // Avoid adding multiple UniteCameraController components if already present
             _cam = GetComponent<UniteCameraController>();
             if (!_cam) _cam = gameObject.AddComponent<UniteCameraController>();
+            // Ensure this GameObject persists across scene loads but avoid duplicates by name
+            if (gameObject.scene.name == null || string.IsNullOrEmpty(gameObject.scene.name) == false)
+            {
+                // We'll mark persistent at awake; RuntimeBootstrapValidator also ensures a CameraBootstrap exists on main camera.
+                DontDestroyOnLoad(gameObject);
+            }
         }
 
         private void Start()
         {
             // Prefer the local player
-            var allMovers = FindObjectsByType<MemeArena.Players.PlayerMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            MemeArena.Players.PlayerMovement[] allMovers = null;
+            try
+            {
+                allMovers = FindObjectsByType<MemeArena.Players.PlayerMovement>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            }
+            catch
+            {
+                // Fallback to legacy API
+                allMovers = UnityEngine.Object.FindObjectsOfType<MemeArena.Players.PlayerMovement>(false);
+            }
             foreach (var pm in allMovers)
             {
                 var no = pm.GetComponent<Unity.Netcode.NetworkObject>();
@@ -52,6 +68,7 @@ namespace MemeArena.CameraSystem
         {
             var nm = NetworkManager.Singleton;
             if (nm == null) return;
+            // Ensure we only subscribe once
             nm.OnClientConnectedCallback -= OnClientConnected;
             nm.OnClientConnectedCallback += OnClientConnected;
         }

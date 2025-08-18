@@ -13,7 +13,7 @@ namespace MemeArena.Combat
     /// TakeDamageServerRpc directly; only the server should modify health.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
-    public class NetworkHealth : NetworkBehaviour
+    public class NetworkHealth : NetworkBehaviour, IDamageable
     {
         /// <summary>
         /// Current health of the object.  Synchronised to clients for UI
@@ -65,15 +65,12 @@ namespace MemeArena.Combat
         }
 
         /// <summary>
-        /// Apply damage to this entity.  Only callable on the server.
+        /// Server-only damage application. Central entry used by both RPC wrapper and IDamageable.
         /// </summary>
-        /// <param name="amount">The amount of damage to apply.</param>
-        /// <param name="attackerId">The network ID of the attacker.
-        /// Provided to downstream AI so that they know who provoked them.</param>
-        [ServerRpc]
-        public void TakeDamageServerRpc(int amount, ulong attackerId)
+        public void ApplyDamageServer(int amount, ulong attackerId)
         {
             if (!IsServer) return;
+            if (amount <= 0) return;
             if (_currentHealth.Value <= 0) return;
             _currentHealth.Value = Math.Max(0, _currentHealth.Value - amount);
             OnDamageReceived?.Invoke(amount, attackerId);
@@ -82,6 +79,27 @@ namespace MemeArena.Combat
             {
                 OnDeath?.Invoke();
             }
+        }
+
+        /// <summary>
+        /// Back-compat: RPC entry point forwards to server-only application.
+        /// </summary>
+        [ServerRpc]
+        public void TakeDamageServerRpc(int amount, ulong attackerId)
+        {
+            ApplyDamageServer(amount, attackerId);
+        }
+
+        /// <summary>
+        /// IDamageable implementation. Server-only; resolves attacker from source NetworkObject.
+        /// </summary>
+        public void ApplyDamage(int amount, GameObject source, Vector3 hitPoint)
+        {
+            if (!IsServer) return;
+            ulong attackerId = 0UL;
+            var n = source ? source.GetComponent<NetworkObject>() : null;
+            if (n) attackerId = n.NetworkObjectId;
+            ApplyDamageServer(amount, attackerId);
         }
 
         private void OnDeathServer()
