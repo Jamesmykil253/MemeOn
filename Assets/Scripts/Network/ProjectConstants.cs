@@ -72,6 +72,8 @@ namespace MemeArena.Network
             public const int Enemy = 7;
             public const int AI = 8;
             public const int Projectile = 9;
+            // Optional layers (set if defined in TagManager)
+            public const int Minion = 10; // Update to your actual Minions layer index if different
         }
     }
 }

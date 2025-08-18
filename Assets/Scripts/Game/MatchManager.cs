@@ -76,16 +76,20 @@ namespace MemeArena.Game
             // Optionally perform server-side cleanup or transition.
         }
 
+        // Lightweight client-side events for UI bindings
+        public static event System.Action OnOvertimeStarted;
+        public static event System.Action<int, int, int> OnMatchEnded; // (winningTeam, team0, team1)
+
         [ClientRpc]
         private void OvertimeStartedClientRpc()
         {
-            // Hook up UI feedback for overtime start (e.g., flash banner)
+            OnOvertimeStarted?.Invoke();
         }
 
         [ClientRpc]
         private void MatchEndedClientRpc(int winningTeam, int team0Score, int team1Score)
         {
-            // Hook up UI to show results panel.
+            OnMatchEnded?.Invoke(winningTeam, team0Score, team1Score);
         }
     }
 }

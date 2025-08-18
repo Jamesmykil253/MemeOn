@@ -93,7 +93,7 @@ Role: Tank / bruiser
 • Jump: triggered via Input System “Jump” action, vertical velocity impulse applied.
 • Double jump: available if `doubleJumpAvailable` flag is true; resets on ground contact.
 • Air control: capped at 60% of ground acceleration.
-• Camera control (alive): Holding the Pan Modifier (default: Right Mouse) while using Look allows camera panning without detaching from the player. Horizontal look pans along camera-right (XZ only), vertical look pans along world Y. Pan radius clamps to ~6m and recenters when released.
+• Camera control (alive): Holding Sprint (Left Shift) while using Look allows camera panning without detaching from the player. Horizontal look pans along camera-right (XZ only), vertical look pans along world Y. Pan radius clamps to ~6m and recenters when released.
 • Camera control (dead): On death the camera detaches into free-pan mode. Move.x controls horizontal panning along camera-right; Move.y maps to world Y (up/down). Scroll adjusts zoom. Camera continues to look toward the last target position for context.
 
 ----------------------------------------

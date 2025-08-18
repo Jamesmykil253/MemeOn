@@ -3,6 +3,7 @@ using Unity.Netcode;
 using UnityEngine;
 using MemeArena.Players;
 using MemeArena.Combat;
+using MemeArena.Network;
 
 namespace MemeArena.Game
 {

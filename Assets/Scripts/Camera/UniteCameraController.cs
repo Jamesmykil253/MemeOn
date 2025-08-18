@@ -15,6 +15,8 @@ namespace MemeArena.CameraSystem
         public float zoomSpeed = 5f;
         public float minZoom = 4f;
         public float maxZoom = 12f;
+    [Range(-89f, 89f)] public float pitchDeg = 35f;
+    [Range(-180f, 180f)] public float yawDeg = 0f;
 
         [Header("Live pan (while alive)")]
         [Tooltip("If true, holding the pan modifier or using Look input allows panning the camera without detaching from the player.")]
@@ -32,7 +34,6 @@ namespace MemeArena.CameraSystem
         public bool freeCamOnDeath = true;
         public InputActionReference moveAction;   // Vector2 ("Move") optional; falls back to generated actions
         public InputActionReference jumpAction;   // Button ("Jump") optional; not mandatory for spec but kept for future
-        public InputActionReference crouchAction; // Button ("Crouch") optional; not mandatory
         public float freePanSpeed = 12f;          // applies to X using Move.x
         public float freeElevateSpeed = 8f;       // applies to Y using Move.y (per spec: up/down -> Y axis)
         public float freePanDamping = 10f;        // smoothing for free cam motion
@@ -47,9 +48,8 @@ namespace MemeArena.CameraSystem
         private InputSystem_Actions _actions;
         private InputAction _lookFallback;
         private InputAction _moveFallback;
-        private InputAction _jumpFallback;
-        private InputAction _crouchFallback;
-        private InputAction _panModFallback; // UI.RightClick as a reasonable default
+    private InputAction _jumpFallback;
+    private InputAction _panModFallback; // Use Player.Sprint as pan modifier (Left Shift)
 
         [Header("Debug")] public bool debugLogs = false;
 
@@ -138,7 +138,8 @@ namespace MemeArena.CameraSystem
                 }
             }
 
-            var desiredFollow = followAnchor + (Quaternion.identity * offset.normalized) * _zoom + _livePanOffset;
+            var camRot = Quaternion.Euler(pitchDeg, yawDeg, 0f);
+            var desiredFollow = followAnchor + (camRot * offset.normalized) * _zoom + _livePanOffset;
             transform.position = Vector3.Lerp(transform.position, desiredFollow, 1f - Mathf.Exp(-smooth * Time.deltaTime));
             transform.LookAt(followAnchor + _livePanOffset);
         }
@@ -149,20 +150,18 @@ namespace MemeArena.CameraSystem
             if (lookAction != null && !lookAction.action.enabled) lookAction.action.Enable();
             if (moveAction != null && !moveAction.action.enabled) moveAction.action.Enable();
             if (jumpAction != null && !jumpAction.action.enabled) jumpAction.action.Enable();
-            if (crouchAction != null && !crouchAction.action.enabled) crouchAction.action.Enable();
             if (panModifierAction != null && !panModifierAction.action.enabled) panModifierAction.action.Enable();
 
             if (_actions == null && (lookAction == null || moveAction == null || panModifierAction == null))
             {
                 _actions = new InputSystem_Actions();
                 _actions.Player.Enable();
-                _actions.UI.Enable(); // for RightClick as a decent default modifier
+                _actions.UI.Enable();
                 if (lookAction == null) _lookFallback = _actions.Player.Look;
                 if (moveAction == null) _moveFallback = _actions.Player.Move;
                 if (jumpAction == null) _jumpFallback = _actions.Player.Jump;
-                if (crouchAction == null) _crouchFallback = _actions.Player.Crouch;
-                if (panModifierAction == null) _panModFallback = _actions.UI.RightClick;
-                if (debugLogs) Debug.Log("UniteCameraController: Using InputSystem_Actions fallback for camera inputs.");
+                if (panModifierAction == null) _panModFallback = _actions.Player.Sprint; // Left Shift
+                if (debugLogs) Debug.Log("UniteCameraController: Using InputSystem_Actions fallback (Look/Move/Jump + Sprint as PanModifier).");
             }
         }
 
@@ -202,7 +201,7 @@ namespace MemeArena.CameraSystem
                 _actions.UI.Disable();
                 _actions.Dispose();
                 _actions = null;
-                _lookFallback = null; _moveFallback = null; _jumpFallback = null; _crouchFallback = null; _panModFallback = null;
+                _lookFallback = null; _moveFallback = null; _jumpFallback = null; _panModFallback = null;
             }
         }
 
@@ -222,8 +221,9 @@ namespace MemeArena.CameraSystem
             {
                 _observedHealth.OnHealthChanged += OnObservedHealthChanged;
                 _observedHealth.OnDeath += OnObservedDeath;
-                _targetIsDead = _observedHealth.GetCurrentHealth() <= 0;
-                if (debugLogs) Debug.Log($"UniteCameraController: Bound to NetworkHealth on {t.name}, dead={_targetIsDead}");
+                // Avoid assuming dead before first replicated value; wait for OnHealthChanged
+                _targetIsDead = false;
+                if (debugLogs) Debug.Log($"UniteCameraController: Bound to NetworkHealth on {t.name}, awaiting first health value...");
             }
             else
             {

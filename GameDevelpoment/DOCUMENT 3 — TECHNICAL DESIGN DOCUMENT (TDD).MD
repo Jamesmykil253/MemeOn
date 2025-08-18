@@ -54,7 +54,7 @@ Technical implications:
   • AttackSecondary (Button)
   • Interact (Button)
   • Look (Vector2)
-  • PanModifier (Button) — recommended bind: Mouse Right Button
+  • PanModifier (Button) — bind to Player.Sprint (Left Shift)
 - Client sends buffered input frames to server; server applies validated inputs.
 
 3.2 Player Controller
@@ -96,7 +96,7 @@ Technical implications:
 
 3.7 Camera System
 - UniteCameraController
-  - Alive state: Follows target with smoothing and offset. If PanModifier is pressed (or if not bound, any Look input), applies a temporary pan offset: Look.x pans along camera-right projected to XZ; Look.y pans along world Y. Pan offset is clamped to a configurable horizontal radius and recenters with a spring when not panning.
+  - Alive state: Follows target with smoothing and offset. If PanModifier (Sprint/Left Shift) is pressed (or if not bound, any Look input), applies a temporary pan offset: Look.x pans along camera-right projected to XZ; Look.y pans along world Y. Pan offset is clamped to a configurable horizontal radius and recenters with a spring when not panning.
   - Dead state: When NetworkHealth for the target reaches 0, the camera detaches to free mode. Move.x affects horizontal panning along camera-right; Move.y affects world Y elevation (not Z). Zoom uses mouse scroll for editor convenience. Camera continues to LookAt the last known target position.
   - Input sources: Uses InputActionReferences if assigned; otherwise falls back to generated InputSystem_Actions (Player.Look, Player.Move, Player.Jump, Player.Crouch, UI.RightClick for PanModifier).
 

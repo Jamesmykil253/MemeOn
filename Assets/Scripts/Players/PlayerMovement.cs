@@ -38,11 +38,16 @@ namespace MemeArena.Players
     float _lastInputReceiveTime;
     bool _canDoubleJump; // server-owned
     bool _wasGrounded;   // server-owned
+    bool _apexWindowOpen; // server-owned
+    float _apexWindowTimer; // server-owned
 
     [Header("Jumping")]
-    [Min(0.5f)] public float jumpHeight = 2.5f; // meters
-    [Tooltip("If <= 0, reuse jumpHeight for double jump.")]
-    public float doubleJumpHeight = 0f;
+    [Min(0.1f)] public float firstJumpHeight = 1.5f; // meters per spec
+    [Min(0.1f)] public float doubleJumpHeight = 1.5f; // base double jump height (bonus applied at apex)
+    [Tooltip("Extra height added if double-jump is pressed near the apex of first jump.")]
+    public float doubleJumpApexBonus = 0.75f;
+    [Tooltip("Seconds after upward velocity crosses zero that still count as apex window.")]
+    public float apexWindowSeconds = 0.12f;
     [Header("Debug")]
     [SerializeField] bool debugLogs = false;
     [SerializeField] bool verboseMovement = false;
@@ -172,8 +177,26 @@ namespace MemeArena.Players
                 if (_cc.isGrounded && !_wasGrounded)
                 {
                     _canDoubleJump = true; // touching ground restores double-jump availability
+                    _apexWindowOpen = false;
+                    _apexWindowTimer = 0f;
                 }
                 _wasGrounded = _cc.isGrounded;
+
+                // Detect apex crossing: when vertical velocity changes from >0 to <=0 while airborne
+                if (!_cc.isGrounded)
+                {
+                    // Use last frame est by checking sign change — approximate by opening window once we start falling
+                    if (_serverVelocity.y <= 0f && !_apexWindowOpen)
+                    {
+                        _apexWindowOpen = true;
+                        _apexWindowTimer = apexWindowSeconds;
+                    }
+                    if (_apexWindowOpen)
+                    {
+                        _apexWindowTimer -= Time.fixedDeltaTime;
+                        if (_apexWindowTimer <= 0f) _apexWindowOpen = false;
+                    }
+                }
 
                 Vector3 moveDir = new Vector3(_lastClientMove.x, 0f, _lastClientMove.y);
                 if (moveDir.sqrMagnitude > 1f) moveDir.Normalize();
@@ -232,10 +255,9 @@ namespace MemeArena.Players
         }
         if (!IsServer) return;
 
-        float jh = jumpHeight > 0f ? jumpHeight : 2.0f;
-        float djh = doubleJumpHeight > 0f ? doubleJumpHeight : jh;
-        float jumpVel = Mathf.Sqrt(Mathf.Abs(2f * gravity * -1f) * jh); // gravity is negative; use magnitude
-        float doubleJumpVel = Mathf.Sqrt(Mathf.Abs(2f * gravity * -1f) * djh);
+        float g = Mathf.Abs(gravity);
+        float jumpVel = Mathf.Sqrt(2f * g * Mathf.Max(0.1f, firstJumpHeight));
+        float doubleBaseVel = Mathf.Sqrt(2f * g * Mathf.Max(0.1f, doubleJumpHeight));
 
         if (_cc.isGrounded)
         {
@@ -245,7 +267,8 @@ namespace MemeArena.Players
         }
         else if (_canDoubleJump)
         {
-            _serverVelocity.y = doubleJumpVel;
+            float bonus = _apexWindowOpen ? Mathf.Sqrt(2f * g * Mathf.Max(0f, doubleJumpApexBonus)) : 0f;
+            _serverVelocity.y = doubleBaseVel + bonus;
             _canDoubleJump = false;
             if (debugLogs) Debug.Log("PlayerMovement(Server): Double jump");
         }

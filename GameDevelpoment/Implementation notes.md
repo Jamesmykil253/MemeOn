@@ -9,7 +9,7 @@
 
 Delta — Camera + Movement (2025-08-17)
 - PlayerMovement: Added server-authoritative jump and double-jump. Owner requests jump via RPC; server applies vertical impulse and manages canDoubleJump. Gravity remains server-simulated. Inspector fields: jumpHeight, doubleJumpHeight.
-- UniteCameraController: Live pan while alive using Look and optional PanModifier. Horizontal pans along camera-right (XZ only); vertical pans along world Y. Radius clamped and recenter spring. Free-pan on death using Move.x for horizontal (camera-right) and Move.y for world Y elevation. Scroll zoom preserved for editor.
+- UniteCameraController: Live pan while alive using Look with PanModifier set to Sprint (Left Shift). Horizontal pans along camera-right (XZ only); vertical pans along world Y. Radius clamped and recenter spring. Free-pan on death using Move.x for horizontal (camera-right) and Move.y for world Y elevation. Scroll zoom preserved for editor.
 - CameraBootstrap: now calls SetTarget to bind/unbind NetworkHealth for death detection.
 
 QA quick checks

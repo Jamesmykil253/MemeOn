@@ -32,13 +32,13 @@ public sealed class LimitedViewController : MonoBehaviour
     {
         for (int i = 0; i < 32; i++) cullDistances[i] = defaultRadius;
 
-    int enemies = LayerMask.NameToLayer("Enemies");
-    int minions = LayerMask.NameToLayer("Minions");
+    int enemies = MemeArena.Network.ProjectConstants.Layers.Enemy;
+    int minions = MemeArena.Network.ProjectConstants.Layers.Minion;
     int projectiles = MemeArena.Network.ProjectConstants.Layers.Projectile;
     int environment = MemeArena.Network.ProjectConstants.Layers.Environment;
 
         if (enemies >= 0) cullDistances[enemies] = enemiesRadius;
-        if (minions >= 0) cullDistances[minions] = minionsRadius;
+    if (minions >= 0) cullDistances[minions] = minionsRadius;
         if (projectiles >= 0) cullDistances[projectiles] = projectilesRadius;
         if (environment >= 0) cullDistances[environment] = environmentRadius;
 
