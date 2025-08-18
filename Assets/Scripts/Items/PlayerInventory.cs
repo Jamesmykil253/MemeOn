@@ -9,6 +9,7 @@ namespace MemeArena.Items
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [System.Obsolete("Use MemeArena.Players.PlayerInventory instead.")]
+    [AddComponentMenu("")]
     public class LegacyPlayerInventory : NetworkBehaviour
     {
         private NetworkVariable<int> _coinCount = new NetworkVariable<int>(0);

@@ -109,13 +109,7 @@ namespace MemeArena.Players
                     Debug.Log("PlayerMovement: Using auto-bound InputSystem_Actions fallback.");
                 }
 
-                // Warn about duplicate movement controllers
-                var ctrl = GetComponent<PlayerController>();
-                if (ctrl != null)
-                {
-                    Debug.LogWarning("PlayerMovement: PlayerController also present. Disabling legacy controller to avoid conflicts.");
-                    ctrl.enabled = false;
-                }
+                // Legacy PlayerController has been deprecated; no need to check/disable here.
                 // Ensure NetworkTransform exists for replication; add at runtime if missing.
                 var nt = GetComponent<Unity.Netcode.Components.NetworkTransform>();
                 if (nt == null)

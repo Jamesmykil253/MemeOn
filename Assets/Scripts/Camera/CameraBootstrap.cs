@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections;
+using Unity.Netcode;
 
 namespace MemeArena.CameraSystem
 {
@@ -33,6 +35,10 @@ namespace MemeArena.CameraSystem
             var enemyAI = FindFirstObjectByType<MemeArena.AI.AIController>();
             if (!enemyAI) enemyAI = FindAnyObjectByType<MemeArena.AI.AIController>();
             if (enemyAI) { _cam.SetTarget(enemyAI.transform); if (debugLogs) Debug.Log($"CameraBootstrap: Targeting fallback AI {enemyAI.name}."); }
+
+            // Also start a retarget coroutine in case the local player spawns later via NGO
+            StartCoroutine(WaitAndRetargetLocal());
+            TryHookNetworkCallbacks();
         }
 
         public void Retarget(Transform t)
@@ -40,6 +46,45 @@ namespace MemeArena.CameraSystem
             if (!_cam) _cam = GetComponent<UniteCameraController>();
             _cam?.SetTarget(t);
             if (debugLogs && t != null) Debug.Log($"CameraBootstrap: Retarget called → {t.name}");
+        }
+
+        private void TryHookNetworkCallbacks()
+        {
+            var nm = NetworkManager.Singleton;
+            if (nm == null) return;
+            nm.OnClientConnectedCallback -= OnClientConnected;
+            nm.OnClientConnectedCallback += OnClientConnected;
+        }
+
+        private void OnClientConnected(ulong clientId)
+        {
+            // If this is our local client, attempt to retarget soon after spawn
+            var nm = NetworkManager.Singleton;
+            if (nm != null && nm.LocalClientId == clientId)
+            {
+                StartCoroutine(WaitAndRetargetLocal());
+            }
+        }
+
+        private IEnumerator WaitAndRetargetLocal()
+        {
+            var nm = NetworkManager.Singleton;
+            float t = 0f;
+            while (t < 10f)
+            {
+                if (nm != null && nm.IsClient && nm.LocalClient != null && nm.LocalClient.PlayerObject != null)
+                {
+                    var po = nm.LocalClient.PlayerObject;
+                    var pm = po != null ? po.GetComponentInChildren<MemeArena.Players.PlayerMovement>() : null;
+                    if (pm != null)
+                    {
+                        Retarget(pm.transform);
+                        yield break;
+                    }
+                }
+                t += 0.25f;
+                yield return new WaitForSeconds(0.25f);
+            }
         }
     }
 }

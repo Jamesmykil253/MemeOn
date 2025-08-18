@@ -21,10 +21,19 @@ namespace MemeArena.Players
         public int damage = 10;
     [Tooltip("Optional: Melee weapon component to perform basic melee swings on server.")]
     public MemeArena.Combat.MeleeWeaponServer meleeWeapon;
+    [Header("Melee (built-in fallback)")]
+    [Tooltip("Used if no MeleeWeaponServer is present. Radius of the melee hit sphere at the end of the swing arc.")]
+    public float meleeRadius = 1.2f;
+    [Tooltip("Used if no MeleeWeaponServer is present. Forward distance from the player to the melee center.")]
+    public float meleeRange = 1.8f;
+    [Tooltip("Used if no MeleeWeaponServer is present. Damage per successful melee hit.")]
+    public int meleeDamage = 15;
+    [Tooltip("Used if no MeleeWeaponServer is present. Physics layer mask to hit.")]
+    public LayerMask meleeHitMask = ~0;
     [Header("Boosted Attack (optional)")]
     [Tooltip("If enabled, after a number of normal shots the next shot will be boosted.")]
     public bool enableBoostedCycle = true;
-    [Tooltip("Number of normal shots before granting a boosted shot (e.g., 3 → every third grants boost for the next).")]
+    [Tooltip("Number of successful melee hits before granting a boosted attack (projectile next). Typical: 3.")]
     public int shotsBeforeBoost = 3;
     [Tooltip("Additional damage applied to the boosted shot.")]
     public int boostedDamageBonus = 10;
@@ -47,7 +56,6 @@ namespace MemeArena.Players
         public void FireServerRpc(ServerRpcParams rpcParams = default)
         {
             if (!IsServer) return;
-            if (!projectilePrefab) return;
             if (rpcParams.Receive.SenderClientId != NetworkObject.OwnerClientId)
             {
                 if (debugLogs)
@@ -62,70 +70,119 @@ namespace MemeArena.Players
 
             // Compute damage with optional boosted logic
             int dmgToUse = damage;
-            bool wasBoostedShot = false;
-            if (enableBoostedCycle)
+            if (_boost == null) _boost = GetComponent<MemeArena.Combat.BoostedAttackTracker>();
+
+            // Boosted path: projectile only; consumes boost
+            if (enableBoostedCycle && _boost != null && _boost.IsBoosted)
             {
-                if (_boost == null) _boost = GetComponent<MemeArena.Combat.BoostedAttackTracker>();
-                if (_boost != null)
+                dmgToUse = Mathf.Max(0, damage + boostedDamageBonus);
+                if (projectilePrefab != null)
                 {
-                    if (_boost.IsBoosted)
+                    Vector3 spawnPos = transform.position + transform.forward * 0.6f + Vector3.up * 0.8f;
+                    var go = Instantiate(projectilePrefab, spawnPos, transform.rotation);
+                    var proj = go.GetComponent<ProjectileServer>();
+                    if (proj == null) { proj = go.AddComponent<ProjectileServer>(); }
+                    proj.Launch(gameObject, dmgToUse, 22f, 3f);
+                    var netObj = go.GetComponent<NetworkObject>();
+                    if (debugLogs) Debug.Log("PlayerCombatController(Server): Spawning projectile NetworkObject (boosted)");
+                    netObj?.Spawn();
+                    if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): BOOSTED projectile spawned dmg={dmgToUse} pos={spawnPos}");
+                }
+                else
+                {
+                    if (debugLogs) Debug.LogWarning("PlayerCombatController(Server): Boosted shot requested but projectilePrefab is not assigned. Falling back to melee.");
+                    // Fall back to melee even during boosted if no projectile prefab is assigned
+                    bool boostedMelee = false;
+                    if (meleeWeapon != null)
                     {
-                        // Consume boost on this shot
-                        dmgToUse = Mathf.Max(0, damage + boostedDamageBonus);
-                        _boost.SetBoosted(false);
-                        _sinceLastBoost = 0;
-                        _auditBoostConsumedCount++;
-                        wasBoostedShot = true;
-                        if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boosted CONSUMED count={_auditBoostConsumedCount} dmg={dmgToUse}");
+                        boostedMelee = meleeWeapon.PerformSwing(gameObject, dmgToUse);
                     }
                     else
                     {
-                        _sinceLastBoost = Mathf.Clamp(_sinceLastBoost + 1, 0, 1000000);
-                        if (shotsBeforeBoost > 0 && _sinceLastBoost >= shotsBeforeBoost)
-                        {
-                            // After the threshold, grant boost for the NEXT shot
-                            _boost.SetBoosted(true);
-                            _sinceLastBoost = 0;
-                            _auditBoostGrantedCount++;
-                            if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boost GRANTED count={_auditBoostGrantedCount}");
-                            SetBoostReadyClientRpc(true);
-                        }
+                        boostedMelee = ServerPerformMeleeSweep(dmgToUse);
                     }
+                    if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): BOOSTED fallback melee hit={boostedMelee} dmg={dmgToUse}");
                 }
+                // consume boost
+                _boost.SetBoosted(false);
+                _sinceLastBoost = 0;
+                _auditBoostConsumedCount++;
+                SetBoostReadyClientRpc(false);
+                FlashAttackClientRpc(true);
+                return;
             }
 
+            // Non-boosted path: melee-only; grant boost on successful melee hits
             bool didMelee = false;
-            // Try melee first if available
             if (meleeWeapon != null)
             {
                 didMelee = meleeWeapon.PerformSwing(gameObject);
                 if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Melee swing attempted hit={didMelee}");
-            }
-
-            // Then ranged (projectile) if prefab is assigned
-            if (projectilePrefab != null)
-            {
-                Vector3 spawnPos = transform.position + transform.forward * 0.6f + Vector3.up * 0.8f;
-                var go = Instantiate(projectilePrefab, spawnPos, transform.rotation);
-                var proj = go.GetComponent<ProjectileServer>();
-                if (proj == null)
+                if (enableBoostedCycle && _boost != null && didMelee)
                 {
-                    proj = go.AddComponent<ProjectileServer>();
+                    _sinceLastBoost = Mathf.Clamp(_sinceLastBoost + 1, 0, 1000000);
+                    if (shotsBeforeBoost > 0 && _sinceLastBoost >= shotsBeforeBoost)
+                    {
+                        _boost.SetBoosted(true);
+                        _sinceLastBoost = 0;
+                        _auditBoostGrantedCount++;
+                        if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boost GRANTED after melee hits count={_auditBoostGrantedCount}");
+                        SetBoostReadyClientRpc(true);
+                    }
                 }
-                // Initialise the projectile with the firing direction, owner, damage, speed and lifetime.
-                proj.Launch(gameObject, dmgToUse, 22f, 3f);
-                var netObj = go.GetComponent<NetworkObject>();
-                if (debugLogs) Debug.Log("PlayerCombatController(Server): Spawning projectile NetworkObject");
-                netObj?.Spawn();
-                if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Projectile spawned dmg={dmgToUse} pos={spawnPos}");
+            }
+            else
+            {
+                // Built-in fallback melee sweep to avoid requiring separate weapon components
+                didMelee = ServerPerformMeleeSweep(meleeDamage);
+                if (auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Fallback melee sweep hit={didMelee}");
+                if (!didMelee && debugLogs)
+                {
+                    Debug.Log("PlayerCombatController(Server): Fallback melee found no targets.");
+                }
+                if (enableBoostedCycle && _boost != null && didMelee)
+                {
+                    _sinceLastBoost = Mathf.Clamp(_sinceLastBoost + 1, 0, 1000000);
+                    if (shotsBeforeBoost > 0 && _sinceLastBoost >= shotsBeforeBoost)
+                    {
+                        _boost.SetBoosted(true);
+                        _sinceLastBoost = 0;
+                        _auditBoostGrantedCount++;
+                        if (debugLogs || auditLogs) Debug.Log($"AUDIT PlayerCombat(Server): Boost GRANTED after melee hits count={_auditBoostGrantedCount}");
+                        SetBoostReadyClientRpc(true);
+                    }
+                }
             }
 
-            // Visual: flash attack color on clients; if boosted shot, flash boosted variant and clear boost-ready persistent
-            FlashAttackClientRpc(wasBoostedShot);
-            if (wasBoostedShot)
+            // Visual: normal attack flash for melee
+            FlashAttackClientRpc(false);
+        }
+
+        /// <summary>
+        /// Server-side melee sweep used when no MeleeWeaponServer is available.
+        /// Returns true if any IDamageable was hit and damaged.
+        /// </summary>
+        private bool ServerPerformMeleeSweep(int dmgAmount)
+        {
+            if (!IsServer) return false;
+            var origin = transform.position + Vector3.up * 0.9f;
+            var dir = transform.forward;
+            var center = origin + dir * meleeRange;
+            var hits = Physics.OverlapSphere(center, meleeRadius, meleeHitMask, QueryTriggerInteraction.Ignore);
+            bool hitAny = false;
+            foreach (var h in hits)
             {
-                SetBoostReadyClientRpc(false);
+                // Ignore self or same root
+                if (h.transform.root == transform.root) continue;
+
+                var dmg = h.GetComponentInParent<MemeArena.Combat.IDamageable>();
+                if (dmg != null)
+                {
+                    dmg.ApplyDamage(dmgAmount, gameObject, h.ClosestPoint(center));
+                    hitAny = true;
+                }
             }
+            return hitAny;
         }
 
         [ClientRpc]

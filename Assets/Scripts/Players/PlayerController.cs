@@ -11,6 +11,8 @@ namespace MemeArena.Players
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [RequireComponent(typeof(CharacterController))]
+    [System.Obsolete("Deprecated. Use PlayerMovement which implements server-authoritative input + movement.")]
+    [AddComponentMenu("")]
     public class PlayerController : NetworkBehaviour
     {
         private CharacterController _cc;
@@ -27,6 +29,12 @@ namespace MemeArena.Players
         private void Awake()
         {
             _cc = GetComponent<CharacterController>();
+        }
+
+        private void OnEnable()
+        {
+            Debug.LogWarning("PlayerController is deprecated and will be disabled. Use PlayerMovement.");
+            enabled = false;
         }
 
         /// <summary>
@@ -47,7 +55,7 @@ namespace MemeArena.Players
             if (ctx.performed) _fire = true;
         }
 
-        private void FixedUpdate()
+    private void FixedUpdate()
         {
             if (IsOwner)
             {

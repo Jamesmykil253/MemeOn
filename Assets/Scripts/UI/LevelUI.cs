@@ -1,6 +1,6 @@
 using UnityEngine;
 using TMPro;
-using MemeArena.Players;
+using MemeArena.Stats;
 
 namespace MemeArena.UI
 {
@@ -13,48 +13,58 @@ namespace MemeArena.UI
         [Tooltip("Text component used to display the player level.")]
         [SerializeField] private TMP_Text levelText;
 
-        [Tooltip("PlayerStats component providing the level value.")]
-        [SerializeField] private PlayerStats playerStats;
+        [Tooltip("Optional explicit component that implements ILevelProvider (e.g., PlayerStats, EnemyLevel).")]
+        [SerializeField] private MonoBehaviour levelProviderComponent;
 
-        public void SetSource(PlayerStats stats)
+        private ILevelProvider _provider;
+
+        public void SetSource(ILevelProvider provider)
         {
-            if (playerStats != null)
-            {
-                playerStats.OnLevelChanged -= HandleLevelChanged;
-            }
-            playerStats = stats;
-            if (isActiveAndEnabled && playerStats != null)
-            {
-                playerStats.OnLevelChanged += HandleLevelChanged;
-                HandleLevelChanged(playerStats.Level);
-            }
+            Unsubscribe();
+            _provider = provider;
+            TrySubscribeAndPush();
         }
 
         private void OnEnable()
         {
-            if (playerStats == null)
+            if (_provider == null)
             {
-                playerStats = GetComponentInParent<PlayerStats>();
+                if (levelProviderComponent != null && levelProviderComponent is ILevelProvider explicitProv)
+                {
+                    _provider = explicitProv;
+                }
+                else
+                {
+                    _provider = GetComponentInParent<ILevelProvider>();
+                }
             }
-            if (playerStats != null)
-            {
-                playerStats.OnLevelChanged += HandleLevelChanged;
-                HandleLevelChanged(playerStats.Level);
-            }
+            TrySubscribeAndPush();
         }
 
         private void OnDisable()
         {
-            if (playerStats != null)
-            {
-                playerStats.OnLevelChanged -= HandleLevelChanged;
-            }
+            Unsubscribe();
         }
 
         private void HandleLevelChanged(int newLevel)
         {
             if (levelText == null) return;
             levelText.text = newLevel.ToString();
+        }
+
+        private void TrySubscribeAndPush()
+        {
+            if (_provider == null) return;
+            _provider.OnLevelChanged += HandleLevelChanged;
+            HandleLevelChanged(_provider.Level);
+        }
+
+        private void Unsubscribe()
+        {
+            if (_provider != null)
+            {
+                _provider.OnLevelChanged -= HandleLevelChanged;
+            }
         }
     }
 }

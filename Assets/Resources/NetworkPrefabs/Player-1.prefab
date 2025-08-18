@@ -79,7 +79,7 @@ GameObject:
   - component: {fileID: -9147115012238173897}
   - component: {fileID: 6951835581863184312}
   m_Layer: 6
-  m_Name: Player
+  m_Name: Player-1
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -116,13 +116,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   GlobalObjectIdHash: 2238060216
-  InScenePlacedSourceGlobalObjectIdHash: 2238060216
+  InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 0
+  SceneMigrationSynchronization: 1
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -175,7 +175,7 @@ MonoBehaviour:
   jumpAction: {fileID: -2099379676528639254, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   firstJumpHeight: 1.5
   doubleJumpHeight: 1
-  doubleJumpApexBonus: 0.75
+  doubleJumpApexBonus: 1
   apexWindowSeconds: 0.12
   enableJumpAssist: 0
   coyoteTimeSeconds: 0.1
@@ -204,6 +204,13 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   projectilePrefab: {fileID: 8242624005166438942, guid: 85deb94b61bdb4a229294386692c3fae, type: 3}
   damage: 10
+  meleeWeapon: {fileID: 0}
+  meleeRadius: 1.2
+  meleeRange: 1.8
+  meleeDamage: 15
+  meleeHitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   enableBoostedCycle: 1
   shotsBeforeBoost: 3
   boostedDamageBonus: 10
@@ -339,6 +346,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  autoSnapToNavMesh: 1
+  navMeshSnapRadius: 4
+  logNavMeshWarnings: 0
 --- !u!114 &3790259089788610256
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -428,7 +438,7 @@ MonoBehaviour:
   RotationMaxInterpolationTime: 0.1
   ScaleLerpSmoothing: 1
   ScaleMaxInterpolationTime: 0.1
-  AuthorityMode: 1
+  AuthorityMode: 0
   TickSyncChildren: 0
   UseUnreliableDeltas: 0
   SyncPositionX: 1

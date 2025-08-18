@@ -10,6 +10,8 @@ namespace MemeArena.UI
     /// World-space enemy UI: displays health bar and level text over an enemy.
     /// Attach to a world-space Canvas that's a child of the enemy.
     /// </summary>
+    [System.Obsolete("Replaced by EnemyUnitUI + HealthBarUI/LevelUI modular setup.")]
+    [AddComponentMenu("")]
     public class EnemyWorldUI : MonoBehaviour
     {
         [Header("UI Refs")]

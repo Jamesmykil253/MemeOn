@@ -22,8 +22,10 @@ GameObject:
   - component: {fileID: 1493298492398594164}
   - component: {fileID: 2338156717909988826}
   - component: {fileID: 487373776202376351}
+  - component: {fileID: 4776731797833931232}
+  - component: {fileID: 3226086859140793112}
   m_Layer: 8
-  m_Name: AI_Sentinel
+  m_Name: Enemy-1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -137,7 +139,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 164492423632609151}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 98a17f6876e8743ab92c8c7d7a5827cb, type: 3}
   m_Name: 
@@ -182,6 +184,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
+  autoSnapToNavMesh: 1
+  navMeshSnapRadius: 4
+  logNavMeshWarnings: 0
 --- !u!195 &8416837665778569730
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -343,6 +348,39 @@ MonoBehaviour:
   stunColor: {r: 0, g: 0, b: 1, a: 1}
   returnColor: {r: 1, g: 0, b: 1, a: 1}
   deadColor: {r: 0, g: 0, b: 0, a: 1}
+--- !u!114 &4776731797833931232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2cb5d73c002b462aa1e4932349d7d81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &3226086859140793112
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 164492423632609151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99c090d2c8d184ddea427be96e8eaf60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  _config: {fileID: 11400000, guid: a1d90dfe611324b6a93f79049e2f09a5, type: 2}
+  _stats: {fileID: 11400000, guid: f3e5ee37ac03140959bd30dc0822c581, type: 2}
+  projectilePrefab: {fileID: 164492423632609151}
+  muzzle: {fileID: 6456440799871461692}
+  debugLogs: 1
+  setStateColors: 1
+  stateColorRenderer: {fileID: 1493298492398594164}
 --- !u!1 &1130387500137640481
 GameObject:
   m_ObjectHideFlags: 0

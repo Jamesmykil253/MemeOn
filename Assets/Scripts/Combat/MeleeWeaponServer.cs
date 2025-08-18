@@ -26,7 +26,8 @@ namespace MemeArena.Combat
             int dmgAmount = overrideDamage.HasValue ? overrideDamage.Value : damage;
             foreach (var h in hits)
             {
-                if (h.attachedRigidbody && h.attachedRigidbody.gameObject == owner) continue;
+                // Ignore self or same root
+                if (owner != null && h.transform.root == owner.transform.root) continue;
 
                 var dmg = h.GetComponentInParent<IDamageable>();
                 if (dmg != null)
